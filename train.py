@@ -14,7 +14,7 @@ import torch
 import torch.nn.functional as F
 
 from duel_eval import evaluate_duel_bpb
-from model import DLMConfig, MaskedDLM
+from model import ModernDLMConfig, ModernDLM
 from policies import build_policy
 from prepare import MAX_SEQ_LEN, TIME_BUDGET, Tokenizer, make_token_dataloader
 
@@ -26,7 +26,7 @@ from prepare import MAX_SEQ_LEN, TIME_BUDGET, Tokenizer, make_token_dataloader
 DEPTH = 8
 N_EMBD = 512
 N_HEAD = 8
-FFN_MULT = 4
+FFN_MULT = 8 / 3  # SwiGLU param-matched to 4x GELU MLP
 
 # Optimization
 TOTAL_BATCH_SIZE = 2 ** 18
@@ -59,16 +59,16 @@ tokenizer = Tokenizer.from_directory()
 vocab_size = tokenizer.get_vocab_size()
 mask_token_id = tokenizer.get_mask_token_id()
 
-config = DLMConfig(
+config = ModernDLMConfig(
     sequence_len=MAX_SEQ_LEN,
     vocab_size=vocab_size,
     n_layer=DEPTH,
     n_head=N_HEAD,
     n_embd=N_EMBD,
     ffn_mult=FFN_MULT,
-    dropout=0.0,
 )
-model = MaskedDLM(config).to(device)
+model = ModernDLM(config).to(device)
+model.init_weights()
 model = torch.compile(model, dynamic=False)
 policy = build_policy(POLICY_NAME)
 optimizer = torch.optim.AdamW(model.parameters(), lr=LR, betas=BETAS, weight_decay=WEIGHT_DECAY)
