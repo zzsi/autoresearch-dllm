@@ -85,3 +85,14 @@ experiment_id,commit,description,val_bpb_duel,peak_vram_mb,num_steps,num_params_
 84,6a6294e,batch 2^14 device_batch 32,1.437915,3897,26444,23.5,,discard,6,512,8,2.67,1.8e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,noisy gradients hurt
 85,feefabb,batch 2^14 + LR 0.9e-3,1.438612,3897,26430,23.5,,discard,6,512,8,2.67,0.9e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,still worse even with scaled LR
 86,6dc78cf,no softcap in reveal=1,1.425280,6965,13519,23.5,,discard,6,512,8,2.67,1.8e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,0,max-autotune,softcap still helps
+87,4d0de8b,timestep conditioning (mask ratio awareness),1.415073,7477,13100,23.5,,keep,6,512,8,2.67,1.8e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,model learns mask ratio from input tokens
+88,a1d1f9f,LR 2.2e-3 with timestep cond,,,,,discard,6,512,8,2.67,2.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,too high with new conditioning
+89,cd5d7e9,warmdown ratio 0.6,,,,,discard,6,512,8,2.67,1.8e-3,0.1,"0.9/0.95",0.1,0.6,0.0,1.0,0.05,0.99,20,max-autotune,longer cooldown hurts
+90,7d3d321,mask range t~U[0.03 0.99],,,,,discard,6,512,8,2.67,1.8e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.03,0.99,20,max-autotune,t_lo too low
+91,c618a67,mask range t~U[0.08 0.99],,,,,discard,6,512,8,2.67,1.8e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.08,0.99,20,max-autotune,t_lo=0.05 is already optimal
+92,af7b03b,dropout 0.05,,,,,discard,6,512,8,2.67,1.8e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,regularization hurts small model
+93,6e99d92,remove weight tying,,,,,discard,6,512,8,2.67,1.8e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,separate embeddings worse + more params
+94,45e5026,capped 1/t at t=0.2 (max 5x),1.409746,7477,13022,23.5,,keep,6,512,8,2.67,1.8e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,capping extreme 1/t weights helps
+95,16e8440,cap 1/t at t=0.15 (max ~6.7x),1.410123,7477,13022,23.5,,discard,6,512,8,2.67,1.8e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,too aggressive weighting
+96,711a869,cap 1/t at t=0.3 (max ~3.3x),1.406750,7477,13022,23.5,,keep,6,512,8,2.67,1.8e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,BEST - optimal cap level
+97,ff8e2c7,cap 1/t at t=0.5 (max 2x),1.410117,7477,13022,23.5,,discard,6,512,8,2.67,1.8e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,too much capping loses low-t signal
