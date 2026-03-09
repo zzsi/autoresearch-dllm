@@ -82,7 +82,7 @@ class ModernDLMConfig:
     n_embd: int = 512
     ffn_mult: float = 8 / 3  # SwiGLU hidden ratio (param-matched to 4x GELU MLP)
     rope_theta: float = 10000.0
-    softcap: float = 30.0
+    softcap: float = 20.0
 
 
 class RMSNorm(nn.Module):
