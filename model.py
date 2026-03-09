@@ -14,6 +14,7 @@ class DLMConfig:
     n_embd: int = 512
     ffn_mult: int = 4
     dropout: float = 0.0
+    softcap: float = 15.0
 
 
 class DenoiserBlock(nn.Module):
@@ -61,7 +62,10 @@ class MaskedDLM(nn.Module):
         for block in self.blocks:
             x = block(x)
         x = self.norm(x)
-        return self.lm_head(x)
+        logits = self.lm_head(x)
+        if self.config.softcap > 0:
+            logits = self.config.softcap * torch.tanh(logits / self.config.softcap)
+        return logits
 
 
 # ---------------------------------------------------------------------------

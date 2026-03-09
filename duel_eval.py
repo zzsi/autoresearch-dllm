@@ -8,9 +8,10 @@ from prepare import EVAL_TOKENS, get_token_bytes, make_token_dataloader
 
 @torch.no_grad()
 def duel_logprob_batch(model, x, mask_token_id, policy, reveal_per_step):
+    """Return per-token log-probabilities under the DUEL process."""
     z = torch.full_like(x, mask_token_id)
     masked = torch.ones_like(x, dtype=torch.bool)
-    total_logprob = torch.zeros(x.size(0), device=x.device, dtype=torch.float32)
+    token_logprob = torch.zeros_like(x, dtype=torch.float32)
 
     while masked.any():
         logits = model(z)
@@ -23,11 +24,11 @@ def duel_logprob_batch(model, x, mask_token_id, policy, reveal_per_step):
             if valid.numel() == 0:
                 continue
             tgt = x[b, valid]
-            total_logprob[b] += log_probs[b, valid, tgt].sum().float()
+            token_logprob[b, valid] = log_probs[b, valid, tgt].float()
             z[b, valid] = tgt
             masked[b, valid] = False
 
-    return total_logprob
+    return token_logprob
 
 
 @torch.no_grad()
@@ -40,9 +41,10 @@ def evaluate_duel_bpb(model, tokenizer, batch_size, seq_len, policy, reveal_per_
 
     for _ in range(steps):
         x, _ = next(val_loader)
-        logprob = duel_logprob_batch(model, x, tokenizer.get_mask_token_id(), policy, reveal_per_step)
+        token_lp = duel_logprob_batch(model, x, tokenizer.get_mask_token_id(), policy, reveal_per_step)
         nbytes = token_bytes[x]
-        total_nats += (-logprob).sum().item()
-        total_bytes += nbytes.sum().item()
+        mask = nbytes > 0  # exclude special tokens (BOS etc.)
+        total_nats += (-token_lp[mask]).sum().item()
+        total_bytes += nbytes[mask].sum().item()
 
     return total_nats / (math.log(2) * total_bytes)
