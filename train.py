@@ -118,6 +118,8 @@ while True:
         x_masked, masked_pos = make_masked_batch(x, mask_token_id, MASK_RATIO)
         with autocast_ctx:
             logits = model(x_masked)
+            softcap = 15.0
+            logits = softcap * torch.tanh(logits / softcap)
             loss_flat = F.cross_entropy(
                 logits.view(-1, logits.size(-1)),
                 x.view(-1),
@@ -140,7 +142,7 @@ while True:
     optimizer.zero_grad(set_to_none=True)
 
     train_loss_f = train_loss.item()
-    if train_loss_f > 100:
+    if (not torch.isfinite(train_loss)) or train_loss_f > 1e4:
         print("FAIL")
         raise SystemExit(1)
 
