@@ -1,0 +1,73 @@
+experiment_id,commit,description,val_bpb_duel,peak_vram_mb,num_steps,num_params_M,tok_per_sec,status,depth,n_embd,n_head,ffn_mult,lr,weight_decay,betas,warmup_ratio,warmdown_ratio,final_lr_frac,grad_clip,mask_t_lo,mask_t_hi,softcap,compile_mode,notes
+1,1e94691,baseline (fixed eval),2.671837,8830,,,,keep,8,512,8,2.67,3e-4,0.1,"0.9/0.95",0.05,0.5,0.1,1.0,1e-3,1.0,30,default,original MaskedDLM with fixed mask ratio
+2,1519f31,LLaDA random mask + 1/t weighting (before ModernDLM),2.677640,8600,,,,discard,8,512,8,2.67,3e-4,0.1,"0.9/0.95",0.05,0.5,0.1,1.0,1e-3,1.0,30,default,added random t with 1/t loss but still MaskedDLM
+3,6b7ad8f,LLaDA random mask + 1/t weighting (second attempt),2.657800,8600,,,,keep,8,512,8,2.67,3e-4,0.1,"0.9/0.95",0.05,0.5,0.1,1.0,1e-3,1.0,30,default,fixed 1/t loss implementation
+4,659ec06,switch to ModernDLM,2.443098,8600,,,,keep,8,512,8,2.67,3e-4,0.1,"0.9/0.95",0.05,0.5,0.1,1.0,1e-3,1.0,30,default,RMSNorm RoPE SwiGLU Mitchell init
+5,df1be3c,decrease total batch to 2^17,2.379953,8600,,,,keep,8,512,8,2.67,3e-4,0.1,"0.9/0.95",0.05,0.5,0.1,1.0,1e-3,1.0,30,default,more optimizer steps per token
+6,2d26556,decrease total batch to 2^16,2.336880,8600,,,,keep,8,512,8,2.67,3e-4,0.1,"0.9/0.95",0.05,0.5,0.1,1.0,1e-3,1.0,30,default,even more optimizer steps
+7,bf1e79e,decrease total batch to 2^15,2.305798,7500,,,,keep,8,512,8,2.67,3e-4,0.1,"0.9/0.95",0.05,0.5,0.1,1.0,1e-3,1.0,30,default,no grad accum - maximum optimizer steps
+8,fd88687,increase warmup to 0.1,2.290279,7500,,,,keep,8,512,8,2.67,3e-4,0.1,"0.9/0.95",0.1,0.5,0.1,1.0,1e-3,1.0,30,default,longer warmup helps stability
+9,77cdcb4,reduce depth to 6,2.290279,7500,,,,keep,6,512,8,2.67,3e-4,0.1,"0.9/0.95",0.1,0.5,0.1,1.0,1e-3,1.0,30,default,same val_bpb but faster throughput
+10,7238a72,LR 5e-4,2.288166,7496,13100,25.0,714000,keep,6,512,8,2.67,5e-4,0.1,"0.9/0.95",0.1,0.5,0.1,1.0,1e-3,1.0,30,default,slightly higher LR helps
+11,5d8452e,LR 8e-4,2.286542,7496,13100,25.0,714000,keep,6,512,8,2.67,8e-4,0.1,"0.9/0.95",0.1,0.5,0.1,1.0,1e-3,1.0,30,default,continuing LR sweep upward
+12,a1863ec,LR 1.2e-3,2.280886,7496,13100,25.0,714000,keep,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.1,1.0,1e-3,1.0,30,default,optimal LR found
+13,cbc987e,LR 2e-3,2.307863,7496,13100,25.0,714000,discard,6,512,8,2.67,2e-3,0.1,"0.9/0.95",0.1,0.5,0.1,1.0,1e-3,1.0,30,default,too high - loss diverges slightly
+14,74bee1a,LR 1.5e-3,2.309931,7496,13100,25.0,714000,discard,6,512,8,2.67,1.5e-3,0.1,"0.9/0.95",0.1,0.5,0.1,1.0,1e-3,1.0,30,default,still too high
+15,7f83671,weight decay 0.05,2.290867,7496,13100,25.0,714000,discard,6,512,8,2.67,1.2e-3,0.05,"0.9/0.95",0.1,0.5,0.1,1.0,1e-3,1.0,30,default,less regularization hurts
+16,7e29c92,depth 4 width 640,2.331149,6921,12870,25.1,702000,discard,4,640,10,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.1,1.0,1e-3,1.0,30,default,too shallow despite more width
+17,1129ddc,beta2 0.99,2.294644,7496,13100,25.0,714000,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.99",0.1,0.5,0.1,1.0,1e-3,1.0,30,default,slower second moment hurts
+18,cfb34ff,16 heads (head_dim 32),2.305596,7500,12944,23.5,708000,discard,6,512,16,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.1,1.0,1e-3,1.0,30,default,too small head_dim
+19,c6c64b8,warmdown ratio 0.3,2.287548,7496,13100,25.0,714000,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.3,0.1,1.0,1e-3,1.0,30,default,shorter cooldown hurts
+20,300cccf,warmdown ratio 0.7,2.288727,7496,13100,25.0,714000,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.7,0.1,1.0,1e-3,1.0,30,default,longer cooldown slightly hurts
+21,dc714a3,mask epsilon 0.1,2.247785,7496,13100,25.0,714000,keep,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.1,1.0,0.1,1.0,20,default,big improvement - avoid very low mask ratios
+22,65c1303,mask epsilon 0.2,2.236354,7496,13100,25.0,714000,keep,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.1,1.0,0.2,1.0,20,default,continuing eps sweep
+23,8bba5ec,mask epsilon 0.3,2.232234,7496,13100,25.0,714000,keep,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.1,1.0,0.3,1.0,20,default,optimal lower bound for t
+24,050d7c1,mask epsilon 0.4,2.237599,7496,13100,25.0,714000,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.1,1.0,0.4,1.0,20,default,past the sweet spot
+25,4159437,mask epsilon 0.25,2.234068,7496,13100,25.0,714000,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.1,1.0,0.25,1.0,20,default,0.3 is still better
+26,296d81e,softcap 20,2.231230,7496,13100,25.0,714000,keep,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.1,1.0,0.3,1.0,20,default,tighter logit capping helps
+27,6de9f59,softcap 15,2.252235,7496,13100,25.0,714000,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.1,1.0,0.3,1.0,15,default,too tight
+28,a0df1e4,final LR frac 0.01,2.229939,7496,13100,25.0,714000,keep,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.01,1.0,0.3,1.0,20,default,more aggressive end decay helps
+29,b4de22c,final LR frac 0,2.229299,7496,13100,25.0,714000,keep,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,1.0,20,default,full decay to zero
+30,888cc65,FFN mult 4,2.231291,8289,11400,29.4,623000,discard,6,512,8,4.0,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,1.0,20,default,wider FFN but fewer steps
+31,c15402e,depth 8 width 384,2.233194,7347,14200,17.3,774000,discard,8,384,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,1.0,20,default,too small at 17M params
+32,9077773,grad clip 0.5,2.235031,7496,13100,25.0,714000,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,0.5,0.3,1.0,20,default,too aggressive clipping
+33,823fbd3,warmup ratio 0.05,2.243364,7496,13100,25.0,714000,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.05,0.5,0.0,1.0,0.3,1.0,20,default,less warmup hurts
+34,d4e080c,sqrt t schedule,2.248303,7496,13100,25.0,714000,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,1.0,20,default,bias towards high masking hurts
+35,d3c3299,beta1 0.8,2.235821,7496,13100,25.0,714000,discard,6,512,8,2.67,1.2e-3,0.1,"0.8/0.95",0.1,0.5,0.0,1.0,0.3,1.0,20,default,lower momentum hurts
+36,e0ef87b,no softcap,2.232528,6984,13500,25.0,742000,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,1.0,0,default,slightly worse despite more steps
+37,2573c78,weight decay 0.2,2.230977,7496,13100,25.0,714000,discard,6,512,8,2.67,1.2e-3,0.2,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,1.0,20,default,more regularization slightly hurts
+38,38a5956,depth 7,2.270194,8125,11573,26.7,632000,discard,7,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,1.0,20,default,too slow at 11.5k steps
+39,e291129,depth 5,2.237999,6866,14952,20.3,816000,discard,5,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,1.0,20,default,too small despite 15k steps
+40,5c9872d,width 576,2.314963,7956,10295,28.6,561000,discard,6,576,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,1.0,20,default,way too slow at 10k steps
+41,0d812d3,clamp t to [0.3 0.9],2.226213,7496,13100,25.0,714000,keep,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,0.9,20,default,capping high masking helps
+42,425b459,clamp t to [0.3 0.8],2.233643,7496,13100,25.0,714000,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,0.8,20,default,too tight at top
+43,b7df23b,clamp t to [0.2 0.9],2.227228,7496,13100,25.0,714000,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.2,0.9,20,default,0.3 lower bound still better
+44,905b9ed,clamp t to [0.3 0.95],2.225252,7496,13100,25.0,714000,keep,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,0.95,20,default,sweet spot for t_hi
+45,093d734,torch.compile max-autotune,2.224620,7477,13143,25.0,718000,keep,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,0.95,20,max-autotune,~1% throughput gain
+46,bd27440,label smoothing 0.1,2.248492,7989,12655,25.0,686000,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,0.95,20,max-autotune,hurts exact logprob eval
+47,67e259e,fullgraph=True,2.231459,7477,13167,25.0,718000,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,0.95,20,max-autotune+fullgraph,slightly worse numerics
+48,e4265f4,FFN mult 2,2.252454,6995,14555,19.9,792000,discard,6,512,8,2.0,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,0.95,20,max-autotune,too few params despite more steps
+49,bfdd273,small random init o_proj/down_proj,2.284189,7477,13100,25.0,718000,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,0.95,20,max-autotune,zero-init is crucial for stability
+50,baa9c51,random seed 137,2.231821,7477,13100,25.0,718000,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,0.95,20,max-autotune,seed 42 was luckier
+51,0cd882f,fused AdamW,2.226924,7477,13221,25.0,720000,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,0.95,20,max-autotune,slightly different numerics
+52,90bbdfb,RoPE theta 100k,2.303951,7477,13100,25.0,718000,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,0.95,20,max-autotune,positions too similar at seq_len 512
+53,b38ff15,RoPE theta 5k,,,,,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,0.95,20,max-autotune,worse than theta 10k
+54,5608428,fixed 50% masking ratio,,,,,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.5,0.5,20,max-autotune,random masking is better
+55,618ce2e,QK normalization,,,,,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,0.95,20,max-autotune,added qk norm to attention
+56,39437b4,device batch 32 (2x grad accum),,,,,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,0.95,20,max-autotune,CUDA graph crash with grad accum
+57,a145e8c,AdamW foreach=True,,,,,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,0.95,20,max-autotune,no improvement
+58,8dad4f9,re-tune LR to 1e-3,,,,,discard,6,512,8,2.67,1e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,0.95,20,max-autotune,1.2e-3 still optimal
+59,b6db40d,cosine LR schedule,,,,,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,0.95,20,max-autotune,trapezoidal is better
+60,ff14f7f,medium matmul precision,2.227997,7477,13180,23.5,720000,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,0.95,20,max-autotune,slightly worse numerics
+61,a6e16d7,remove 1/t loss weighting (uniform CE),2.241735,7477,13243,23.5,,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,0.95,20,max-autotune,1/t weighting is important
+62,f52b763,1/sqrt(t) loss weighting,2.236985,7477,13190,23.5,,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,0.95,20,max-autotune,full 1/t better than softer version
+63,5dafbce,EMA weights decay=0.9999,2.501802,7568,13092,23.5,,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,0.95,20,max-autotune,too broad EMA contaminates with init weights
+64,edca0db,EMA weights decay=0.999,2.226586,7568,13122,23.5,,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,0.95,20,max-autotune,doesn't help with LR-decay-to-zero
+65,feb18f3,mixed masking 50% random + 50% L2R,2.285373,7477,13175,23.5,,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,0.95,20,max-autotune,contiguous masking hurts
+66,94cd303,softcap 25,2.231765,7477,13104,23.5,,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,0.95,25,max-autotune,softcap 20 still optimal
+67,27a1c76,REVEAL_PER_STEP=1,1.435324,7477,13125,23.5,,keep,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,0.95,20,max-autotune,MASSIVE improvement - finest granularity eval
+68,d3f875b,REVEAL_PER_STEP=2,1.731740,7477,13103,23.5,,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,0.95,20,max-autotune,worse than reveal=1
+69,5e6c4a8,REVEAL_PER_STEP=4,2.012517,7477,13098,23.5,,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.3,0.95,20,max-autotune,reveal=1>2>4>8 pattern confirmed
+70,fa1c64f,wider mask t~U[0.05 0.99],1.424150,7477,13130,23.5,,keep,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,wider range helps with reveal=1
+71,c94a9dd,mask t~U[0.01 0.999],1.455956,7477,13134,23.5,,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.01,0.999,20,max-autotune,too wide - extremes hurt with 1/t weighting
+72,6624e73,mask t~U[0.02 0.99],1.437004,7477,13163,23.5,,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.02,0.99,20,max-autotune,t_lo=0.02 too low
