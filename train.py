@@ -66,6 +66,7 @@ config = ModernDLMConfig(
     n_head=N_HEAD,
     n_embd=N_EMBD,
     ffn_mult=FFN_MULT,
+    mask_token_id=mask_token_id,
 )
 model = ModernDLM(config).to(device)
 model.init_weights()

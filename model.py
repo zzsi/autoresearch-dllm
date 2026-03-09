@@ -83,6 +83,7 @@ class ModernDLMConfig:
     ffn_mult: float = 8 / 3  # SwiGLU hidden ratio (param-matched to 4x GELU MLP)
     rope_theta: float = 10000.0
     softcap: float = 20.0
+    mask_token_id: int = -1  # set to enable timestep conditioning
 
 
 class RMSNorm(nn.Module):
@@ -197,12 +198,16 @@ class ModernDLM(nn.Module):
         self.norm = RMSNorm(config.n_embd)
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
         self.lm_head.weight = self.token_embed.weight  # weight tying
+        if config.mask_token_id >= 0:
+            self.t_proj = nn.Linear(1, config.n_embd, bias=False)
 
     @torch.no_grad()
     def init_weights(self):
         """Mitchell-style init (LLaDA): std=1/√d, per-layer scaling 1/√(2*layer)."""
         std = 1.0 / (self.config.n_embd ** 0.5)
         nn.init.normal_(self.token_embed.weight, mean=0.0, std=std)
+        if self.config.mask_token_id >= 0:
+            nn.init.zeros_(self.t_proj.weight)
         for layer_idx, block in enumerate(self.blocks):
             layer_std = std / ((2 * (layer_idx + 1)) ** 0.5)
             nn.init.normal_(block.attn.q_proj.weight, mean=0.0, std=layer_std)
@@ -216,6 +221,9 @@ class ModernDLM(nn.Module):
     def forward(self, tokens):
         bsz, seqlen = tokens.shape
         x = self.token_embed(tokens)
+        if self.config.mask_token_id >= 0:
+            t = (tokens == self.config.mask_token_id).float().mean(dim=-1, keepdim=True)  # (B, 1)
+            x = x + self.t_proj(t).unsqueeze(1)  # (B, 1, D) broadcast
         cos, sin = self.rotary(seqlen)
         for block in self.blocks:
             x = block(x, cos, sin)

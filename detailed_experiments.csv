@@ -78,3 +78,10 @@ experiment_id,commit,description,val_bpb_duel,peak_vram_mb,num_steps,num_params_
 77,126a13a,Muon optimizer,1.603163,7403,10433,23.5,,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,Newton-Schulz overhead too high - 20% fewer steps
 78,621adc2,confidence_first policy,1.423697,7477,13101,23.5,,keep,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,marginal improvement over L2R
 79,ec91f38,margin_first policy,1.427049,7477,13096,23.5,,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,worse than confidence_first and L2R
+80,a44a9ff,LR 1.5e-3 in reveal=1,1.418281,7477,13098,23.5,,keep,6,512,8,2.67,1.5e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,higher LR now optimal
+81,c6835b6,LR 2e-3,1.443376,7477,13094,23.5,,discard,6,512,8,2.67,2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,too high
+82,b58a8f3,LR 1.8e-3,1.417145,7477,13085,23.5,,keep,6,512,8,2.67,1.8e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,new optimal LR
+83,b0f52e6,eval temperature 0.8,1.483627,7477,13100,23.5,,discard,6,512,8,2.67,1.8e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,torch.compile prevents eval-only temp
+84,6a6294e,batch 2^14 device_batch 32,1.437915,3897,26444,23.5,,discard,6,512,8,2.67,1.8e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,noisy gradients hurt
+85,feefabb,batch 2^14 + LR 0.9e-3,1.438612,3897,26430,23.5,,discard,6,512,8,2.67,0.9e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,still worse even with scaled LR
+86,6dc78cf,no softcap in reveal=1,1.425280,6965,13519,23.5,,discard,6,512,8,2.67,1.8e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,0,max-autotune,softcap still helps
