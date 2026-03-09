@@ -1,0 +1,2 @@
+1e94691	2.671837	8.6	keep	baseline (fixed eval)
+1519f31	2.677640	8.6	discard	LLaDA random mask ratio + 1/t loss weighting
