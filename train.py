@@ -40,7 +40,7 @@ FINAL_LR_FRAC = 0.1
 GRAD_CLIP_NORM = 1.0
 
 # DLM specifics
-MASK_RATIO = 0.25
+MASK_RATIO = "random"  # "random" = LLaDA-style t~U[eps,1], or float for fixed ratio
 POLICY_NAME = "left_to_right"
 REVEAL_PER_STEP = 8
 
@@ -98,11 +98,19 @@ def get_lr_multiplier(progress):
 
 
 def make_masked_batch(clean_tokens, mask_id, mask_ratio):
-    rand = torch.rand_like(clean_tokens, dtype=torch.float32)
-    masked_positions = rand < mask_ratio
+    bsz = clean_tokens.size(0)
+    if mask_ratio == "random":
+        eps = 1e-3
+        t = torch.rand(bsz, 1, device=clean_tokens.device) * (1 - eps) + eps
+        rand = torch.rand_like(clean_tokens, dtype=torch.float32)
+        masked_positions = rand < t
+    else:
+        rand = torch.rand_like(clean_tokens, dtype=torch.float32)
+        masked_positions = rand < mask_ratio
+        t = None
     x_masked = clean_tokens.clone()
     x_masked[masked_positions] = mask_id
-    return x_masked, masked_positions
+    return x_masked, masked_positions, t
 
 
 t_start_training = time.time()
@@ -115,7 +123,7 @@ while True:
     t0 = time.time()
 
     for _ in range(grad_accum_steps):
-        x_masked, masked_pos = make_masked_batch(x, mask_token_id, MASK_RATIO)
+        x_masked, masked_pos, t = make_masked_batch(x, mask_token_id, MASK_RATIO)
         with autocast_ctx:
             logits = model(x_masked)
             loss_flat = F.cross_entropy(
@@ -123,8 +131,12 @@ while True:
                 x.view(-1),
                 reduction="none",
             ).view_as(x)
-            denom = masked_pos.sum().clamp_min(1)
-            loss = (loss_flat * masked_pos).sum() / denom
+            if t is not None:
+                # LLaDA 1/t weighting: CE / t, normalized by B*L
+                loss = (loss_flat * masked_pos.float() / t).sum() / (x.size(0) * x.size(1))
+            else:
+                denom = masked_pos.sum().clamp_min(1)
+                loss = (loss_flat * masked_pos).sum() / denom
 
         train_loss = loss.detach()
         (loss / grad_accum_steps).backward()
