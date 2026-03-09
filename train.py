@@ -69,7 +69,7 @@ config = ModernDLMConfig(
 )
 model = ModernDLM(config).to(device)
 model.init_weights()
-model = torch.compile(model, dynamic=False)
+model = torch.compile(model, dynamic=False, mode="max-autotune")
 policy = build_policy(POLICY_NAME)
 optimizer = torch.optim.AdamW(model.parameters(), lr=LR, betas=BETAS, weight_decay=WEIGHT_DECAY)
 
