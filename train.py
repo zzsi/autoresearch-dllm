@@ -31,7 +31,7 @@ FFN_MULT = 8 / 3  # SwiGLU param-matched to 4x GELU MLP
 # Optimization
 TOTAL_BATCH_SIZE = 2 ** 15
 DEVICE_BATCH_SIZE = 64
-LR = 8e-4
+LR = 1.2e-3
 WEIGHT_DECAY = 0.1
 BETAS = (0.9, 0.95)
 WARMUP_RATIO = 0.1
