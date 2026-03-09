@@ -133,8 +133,8 @@ while True:
                 reduction="none",
             ).view_as(x)
             if t is not None:
-                # LLaDA 1/t weighting: CE / t, normalized by B*L
-                loss = (loss_flat * masked_pos.float() / t).sum() / (x.size(0) * x.size(1))
+                # Capped 1/t weighting: CE / max(t, 0.2), capping at 5x
+                loss = (loss_flat * masked_pos.float() / t.clamp(min=0.2)).sum() / (x.size(0) * x.size(1))
             else:
                 denom = masked_pos.sum().clamp_min(1)
                 loss = (loss_flat * masked_pos).sum() / denom
