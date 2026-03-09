@@ -71,3 +71,8 @@ experiment_id,commit,description,val_bpb_duel,peak_vram_mb,num_steps,num_params_
 70,fa1c64f,wider mask t~U[0.05 0.99],1.424150,7477,13130,23.5,,keep,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,wider range helps with reveal=1
 71,c94a9dd,mask t~U[0.01 0.999],1.455956,7477,13134,23.5,,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.01,0.999,20,max-autotune,too wide - extremes hurt with 1/t weighting
 72,6624e73,mask t~U[0.02 0.99],1.437004,7477,13163,23.5,,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.02,0.99,20,max-autotune,t_lo=0.02 too low
+73,912f9e8,100% prefix-visible/suffix-masked,2.450487,7477,13159,23.5,,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,pure prefix masking kills bidirectional advantage
+74,a3f1151,70% random + 30% prefix-visible,1.460443,7477,13102,23.5,,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,even 30% prefix mix hurts
+75,993070c,depth 8 in reveal=1 regime,1.428458,8734,10463,29.9,,discard,8,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,close but fewer steps outweighs
+76,e6d9911,large model d8 w640 (~45M),1.529503,10070,7608,44.9,,discard,8,640,10,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,7.6k steps too few
+77,126a13a,Muon optimizer,1.603163,7403,10433,23.5,,discard,6,512,8,2.67,1.2e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,Newton-Schulz overhead too high - 20% fewer steps
