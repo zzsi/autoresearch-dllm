@@ -29,7 +29,7 @@ N_HEAD = 8
 FFN_MULT = 8 / 3  # SwiGLU param-matched to 4x GELU MLP
 
 # Optimization
-TOTAL_BATCH_SIZE = 2 ** 16
+TOTAL_BATCH_SIZE = 2 ** 15
 DEVICE_BATCH_SIZE = 64
 LR = 3e-4
 WEIGHT_DECAY = 0.1
