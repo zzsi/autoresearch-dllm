@@ -100,7 +100,7 @@ def get_lr_multiplier(progress):
 def make_masked_batch(clean_tokens, mask_id, mask_ratio):
     bsz = clean_tokens.size(0)
     if mask_ratio == "random":
-        eps = 1e-3
+        eps = 0.1
         t = torch.rand(bsz, 1, device=clean_tokens.device) * (1 - eps) + eps
         rand = torch.rand_like(clean_tokens, dtype=torch.float32)
         masked_positions = rand < t
