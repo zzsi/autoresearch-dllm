@@ -42,7 +42,7 @@ GRAD_CLIP_NORM = 1.0
 # DLM specifics
 MASK_RATIO = "random"  # "random" = LLaDA-style t~U[eps,1], or float for fixed ratio
 POLICY_NAME = "left_to_right"
-REVEAL_PER_STEP = 8
+REVEAL_PER_STEP = 1
 
 # ---------------------------------------------------------------------------
 # Setup
