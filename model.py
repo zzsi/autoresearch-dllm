@@ -213,10 +213,10 @@ class ModernDLM(nn.Module):
             nn.init.normal_(block.attn.q_proj.weight, mean=0.0, std=layer_std)
             nn.init.normal_(block.attn.k_proj.weight, mean=0.0, std=layer_std)
             nn.init.normal_(block.attn.v_proj.weight, mean=0.0, std=layer_std)
-            nn.init.normal_(block.attn.o_proj.weight, mean=0.0, std=layer_std * 0.01)
+            nn.init.zeros_(block.attn.o_proj.weight)
             nn.init.normal_(block.ffn.gate_proj.weight, mean=0.0, std=layer_std)
             nn.init.normal_(block.ffn.up_proj.weight, mean=0.0, std=layer_std)
-            nn.init.normal_(block.ffn.down_proj.weight, mean=0.0, std=layer_std * 0.01)
+            nn.init.zeros_(block.ffn.down_proj.weight)
 
     def forward(self, tokens):
         bsz, seqlen = tokens.shape
