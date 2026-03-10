@@ -187,6 +187,7 @@ class ModernDLM(nn.Module):
         super().__init__()
         self.config = config
         self.token_embed = nn.Embedding(config.vocab_size, config.n_embd)
+        self.embed_drop = nn.Dropout(0.05)
         self.rotary = RotaryEmbedding(
             config.n_embd // config.n_head,
             max_seq_len=config.sequence_len,
@@ -220,7 +221,7 @@ class ModernDLM(nn.Module):
 
     def forward(self, tokens):
         bsz, seqlen = tokens.shape
-        x = self.token_embed(tokens)
+        x = self.embed_drop(self.token_embed(tokens))
         if self.config.mask_token_id >= 0:
             t = (tokens == self.config.mask_token_id).float().mean(dim=-1, keepdim=True)  # (B, 1)
             x = x + self.t_proj(t).unsqueeze(1)  # (B, 1, D) broadcast
