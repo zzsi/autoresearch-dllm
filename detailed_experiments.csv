@@ -106,3 +106,5 @@ experiment_id,commit,description,val_bpb_duel,peak_vram_mb,num_steps,num_params_
 105,,cap 0.35 at depth 5,1.412337,6880,14993,20.3,,discard,5,512,8,2.67,1.8e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,cap=0.3 still optimal
 106,,FFN_MULT=3 at depth 5,1.415750,7011,14585,21.2,,discard,5,512,8,3.0,1.8e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,wider FFN slows throughput
 107,,sinusoidal timestep embedding+MLP,1.422139,6884,14966,20.6,,discard,5,512,8,2.67,1.8e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,richer conditioning hurts - simple linear is better
+108,,per-sample mask-normalized loss,1.460059,6880,14985,20.3,,discard,5,512,8,2.67,1.8e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,amplifies low-t gradients too much
+109,,no timestep conditioning at d5,1.421019,6848,14982,20.3,,discard,5,512,8,2.67,1.8e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,timestep cond helps at d5 too (0.015 improvement)
