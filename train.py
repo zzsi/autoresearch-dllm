@@ -71,19 +71,9 @@ config = ModernDLMConfig(
 )
 model = ModernDLM(config).to(device)
 model.init_weights()
-# Separate LR for embeddings (tied with lm_head) vs transformer blocks
-embed_params = {id(model.token_embed.weight)}
-if hasattr(model, 't_proj'):
-    embed_params.add(id(model.t_proj.weight))
-block_params = [p for p in model.parameters() if id(p) not in embed_params]
-embed_params_list = [p for p in model.parameters() if id(p) in embed_params]
 model = torch.compile(model, dynamic=False, mode="max-autotune")
 policy = build_policy(POLICY_NAME)
-EMBED_LR_MULT = 0.5
-optimizer = torch.optim.AdamW([
-    {"params": block_params, "lr": LR},
-    {"params": embed_params_list, "lr": LR * EMBED_LR_MULT},
-], betas=BETAS, weight_decay=WEIGHT_DECAY)
+optimizer = torch.optim.AdamW(model.parameters(), lr=LR, betas=BETAS, weight_decay=WEIGHT_DECAY)
 
 tokens_per_fwdbwd = DEVICE_BATCH_SIZE * MAX_SEQ_LEN
 assert TOTAL_BATCH_SIZE % tokens_per_fwdbwd == 0
@@ -157,8 +147,8 @@ while True:
 
     progress = min(total_training_time / TIME_BUDGET, 1.0)
     lrm = get_lr_multiplier(progress)
-    optimizer.param_groups[0]["lr"] = LR * lrm
-    optimizer.param_groups[1]["lr"] = LR * EMBED_LR_MULT * lrm
+    for group in optimizer.param_groups:
+        group["lr"] = LR * lrm
 
     torch.nn.utils.clip_grad_norm_(model.parameters(), GRAD_CLIP_NORM)
     optimizer.step()
