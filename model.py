@@ -165,13 +165,14 @@ class SwiGLUFFN(nn.Module):
 class ModernDenoiserBlock(nn.Module):
     def __init__(self, config: ModernDLMConfig):
         super().__init__()
-        self.norm = RMSNorm(config.n_embd)
+        self.norm1 = RMSNorm(config.n_embd)
         self.attn = BidirectionalAttention(config)
+        self.norm2 = RMSNorm(config.n_embd)
         self.ffn = SwiGLUFFN(config)
 
     def forward(self, x, cos, sin):
-        h = self.norm(x)
-        x = x + self.attn(h, cos, sin) + self.ffn(h)
+        x = x + self.attn(self.norm1(x), cos, sin)
+        x = x + self.ffn(self.norm2(x))
         return x
 
 
