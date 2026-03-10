@@ -159,7 +159,7 @@ class SwiGLUFFN(nn.Module):
         self.down_proj = nn.Linear(hidden, config.n_embd, bias=False)
 
     def forward(self, x):
-        return self.down_proj(F.gelu(self.gate_proj(x)) * self.up_proj(x))
+        return self.down_proj(F.silu(self.gate_proj(x)) * self.up_proj(x))
 
 
 class ModernDenoiserBlock(nn.Module):
