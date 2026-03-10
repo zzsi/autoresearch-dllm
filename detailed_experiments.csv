@@ -112,3 +112,5 @@ experiment_id,commit,description,val_bpb_duel,peak_vram_mb,num_steps,num_params_
 111,,weight decay 0.02,1.405763,6880,14981,20.3,,discard,5,512,8,2.67,1.8e-3,0.02,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,too little regularization
 112,,weight decay 0.03,1.405702,6880,15020,20.3,,discard,5,512,8,2.67,1.8e-3,0.03,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,0.05 still optimal
 113,,weight decay 0.07,1.409572,6880,15016,20.3,,discard,5,512,8,2.67,1.8e-3,0.07,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,WD=0.05 confirmed optimal for d5
+114,,LR 1.5e-3 at WD 0.05,1.418788,6880,14999,20.3,,discard,5,512,8,2.67,1.5e-3,0.05,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,too low LR
+115,,LR 2.0e-3 at WD 0.05,1.399623,6880,14927,20.3,,keep,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,NEW BEST - lower WD enables higher LR
