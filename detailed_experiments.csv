@@ -140,3 +140,4 @@ experiment_id,commit,description,val_bpb_duel,peak_vram_mb,num_steps,num_params_
 134,,cosine warmdown (trapezoidal+cosine decay),1.414488,6879,14815,20.3,,discard,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.6,0.0,1.0,0.05,0.99,20,max-autotune,linear warmdown is better (cosine keeps LR high too long)
 135,,z-loss 1e-4 (KILLED),N/A,,,20.3,,discard,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.6,0.0,1.0,0.05,0.99,20,max-autotune,33% throughput regression from broken CUDA graphs - killed early
 136,,extended mask range t~U[0.01 1.0],1.403729,,,20.3,,discard,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.6,0.0,1.0,0.01,1.0,20,max-autotune,wider mask range hurts - extremes provide less useful signal
+137,,untied embedding/lm_head,1.415635,,,24.5,,discard,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.6,0.0,1.0,0.05,0.99,20,max-autotune,weight tying provides useful regularization at this scale
