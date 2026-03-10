@@ -120,6 +120,10 @@ smooth_train_loss = 0.0
 total_training_time = 0.0
 step = 0
 
+# EMA of model weights for eval (decay=0.999, ~1000 step window)
+EMA_DECAY = 0.999
+ema_params = [p.clone().float() for p in model.parameters()]
+
 
 while True:
     torch.cuda.synchronize()
@@ -154,6 +158,9 @@ while True:
     optimizer.step()
     optimizer.zero_grad(set_to_none=True)
 
+    # EMA update
+    for ep, p in zip(ema_params, model.parameters()):
+        ep.lerp_(p.float(), 1 - EMA_DECAY)
 
     train_loss_f = train_loss.item()
     if (not torch.isfinite(train_loss)) or train_loss_f > 1e4:
@@ -195,6 +202,12 @@ while True:
 
 print()
 total_tokens = step * TOTAL_BATCH_SIZE
+
+# Load EMA weights for evaluation
+with torch.no_grad():
+    for ep, p in zip(ema_params, model.parameters()):
+        p.copy_(ep.to(p.dtype))
+print(f"EMA: loaded averaged weights (decay={EMA_DECAY})")
 
 model.eval()
 with autocast_ctx:
