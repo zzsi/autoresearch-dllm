@@ -31,7 +31,7 @@ FFN_MULT = 8 / 3  # SwiGLU param-matched to 4x GELU MLP
 # Optimization
 TOTAL_BATCH_SIZE = 2 ** 15
 DEVICE_BATCH_SIZE = 64
-LR = 2.2e-3
+LR = 2.0e-3
 WEIGHT_DECAY = 0.05
 BETAS = (0.9, 0.95)
 WARMUP_RATIO = 0.1
@@ -133,6 +133,10 @@ while True:
                 x.view(-1),
                 reduction="none",
             ).view_as(x)
+            # Focal loss: down-weight easy predictions, focus on hard ones
+            p_correct = torch.exp(-loss_flat.detach())
+            focal_weight = (1 - p_correct)  # gamma=1
+            loss_flat = loss_flat * focal_weight
             if t is not None:
                 # Capped 1/t weighting: CE / max(t, 0.3), capping at ~3.3x
                 loss = (loss_flat * masked_pos.float() / t.clamp(min=0.3)).sum() / (x.size(0) * x.size(1))
