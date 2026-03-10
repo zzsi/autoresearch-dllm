@@ -203,20 +203,20 @@ class ModernDLM(nn.Module):
 
     @torch.no_grad()
     def init_weights(self):
-        """Mitchell-style init (LLaDA): std=1/√d, per-layer scaling 1/√(2*layer)."""
-        std = 1.0 / (self.config.n_embd ** 0.5)
+        """GPT-2 style flat init: std=0.02, output projections scaled by 1/√(2*n_layer)."""
+        std = 0.02
+        out_std = std / ((2 * self.config.n_layer) ** 0.5)
         nn.init.normal_(self.token_embed.weight, mean=0.0, std=std)
         if self.config.mask_token_id >= 0:
             nn.init.zeros_(self.t_proj.weight)
-        for layer_idx, block in enumerate(self.blocks):
-            layer_std = std / ((2 * (layer_idx + 1)) ** 0.5)
-            nn.init.normal_(block.attn.q_proj.weight, mean=0.0, std=layer_std)
-            nn.init.normal_(block.attn.k_proj.weight, mean=0.0, std=layer_std)
-            nn.init.normal_(block.attn.v_proj.weight, mean=0.0, std=layer_std)
-            nn.init.zeros_(block.attn.o_proj.weight)
-            nn.init.normal_(block.ffn.gate_proj.weight, mean=0.0, std=layer_std)
-            nn.init.normal_(block.ffn.up_proj.weight, mean=0.0, std=layer_std)
-            nn.init.zeros_(block.ffn.down_proj.weight)
+        for block in self.blocks:
+            nn.init.normal_(block.attn.q_proj.weight, mean=0.0, std=std)
+            nn.init.normal_(block.attn.k_proj.weight, mean=0.0, std=std)
+            nn.init.normal_(block.attn.v_proj.weight, mean=0.0, std=std)
+            nn.init.normal_(block.attn.o_proj.weight, mean=0.0, std=out_std)
+            nn.init.normal_(block.ffn.gate_proj.weight, mean=0.0, std=std)
+            nn.init.normal_(block.ffn.up_proj.weight, mean=0.0, std=std)
+            nn.init.normal_(block.ffn.down_proj.weight, mean=0.0, std=out_std)
 
     def forward(self, tokens):
         bsz, seqlen = tokens.shape
