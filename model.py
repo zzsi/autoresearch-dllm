@@ -197,7 +197,6 @@ class ModernDLM(nn.Module):
         )
         self.norm = RMSNorm(config.n_embd)
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
-        self.lm_head.weight = self.token_embed.weight  # weight tying
         if config.mask_token_id >= 0:
             self.t_proj = nn.Linear(1, config.n_embd, bias=False)
 
@@ -206,6 +205,7 @@ class ModernDLM(nn.Module):
         """Mitchell-style init (LLaDA): std=1/√d, per-layer scaling 1/√(2*layer)."""
         std = 1.0 / (self.config.n_embd ** 0.5)
         nn.init.normal_(self.token_embed.weight, mean=0.0, std=std)
+        nn.init.normal_(self.lm_head.weight, mean=0.0, std=std)
         if self.config.mask_token_id >= 0:
             nn.init.zeros_(self.t_proj.weight)
         for layer_idx, block in enumerate(self.blocks):
