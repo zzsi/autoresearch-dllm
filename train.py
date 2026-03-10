@@ -8,6 +8,7 @@ os.environ["PYTORCH_ALLOC_CONF"] = "expandable_segments:True"
 os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
 
 import gc
+import math
 import time
 
 import torch
@@ -91,12 +92,11 @@ print(f"Gradient accumulation steps: {grad_accum_steps}")
 
 
 def get_lr_multiplier(progress):
+    # Cosine schedule with linear warmup
     if progress < WARMUP_RATIO:
         return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
-    if progress < 1.0 - WARMDOWN_RATIO:
-        return 1.0
-    cooldown = (1.0 - progress) / WARMDOWN_RATIO
-    return cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC
+    decay_progress = (progress - WARMUP_RATIO) / (1.0 - WARMUP_RATIO)
+    return FINAL_LR_FRAC + 0.5 * (1.0 - FINAL_LR_FRAC) * (1.0 + math.cos(math.pi * decay_progress))
 
 
 def make_masked_batch(clean_tokens, mask_id, mask_ratio):
