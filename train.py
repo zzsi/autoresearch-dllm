@@ -133,9 +133,6 @@ while True:
                 x.view(-1),
                 reduction="none",
             ).view_as(x)
-            # Focal loss: down-weight easy predictions, focus on hard ones
-            focal_weight = (1 - torch.exp(-loss_flat.detach()))  # gamma=1
-            loss_flat = loss_flat * focal_weight
             if t is not None:
                 # Capped 1/t weighting: CE / max(t, 0.3), capping at ~3.3x
                 loss = (loss_flat * masked_pos.float() / t.clamp(min=0.3)).sum() / (x.size(0) * x.size(1))
