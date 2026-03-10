@@ -123,3 +123,4 @@ experiment_id,commit,description,val_bpb_duel,peak_vram_mb,num_steps,num_params_
 121,,decoupled WD + warmdown 0.65,1.474004,6880,7338,20.3,,discard,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.65,0.0,1.0,0.05,0.99,20,max-autotune,INVALID - 2-param-group optimizer breaks throughput
 122,,warmdown 0.65 retry (clean),1.405216,6880,14963,20.3,,discard,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.65,0.0,1.0,0.05,0.99,20,max-autotune,0.6 still better
 123,,warmup 0.05 (clean),1.526016,6880,15009,20.3,,discard,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.05,0.6,0.0,1.0,0.05,0.99,20,max-autotune,shorter warmup destabilizes at LR 2e-3
+124,,cosine LR schedule (after warmup),1.419441,6880,15076,20.3,,discard,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,cosine,0.0,1.0,0.05,0.99,20,max-autotune,trapezoidal with constant region is better
