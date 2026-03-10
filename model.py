@@ -221,8 +221,6 @@ class ModernDLM(nn.Module):
     def forward(self, tokens):
         bsz, seqlen = tokens.shape
         x = self.token_embed(tokens)
-        if self.training:
-            x = x + torch.randn_like(x) * 0.001
         if self.config.mask_token_id >= 0:
             t = (tokens == self.config.mask_token_id).float().mean(dim=-1, keepdim=True)  # (B, 1)
             x = x + self.t_proj(t).unsqueeze(1)  # (B, 1, D) broadcast
