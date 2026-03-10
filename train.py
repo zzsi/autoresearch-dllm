@@ -99,10 +99,12 @@ def get_lr_multiplier(progress):
     return cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC
 
 
-def make_masked_batch(clean_tokens, mask_id, mask_ratio):
+def make_masked_batch(clean_tokens, mask_id, mask_ratio, progress=0.0):
     bsz = clean_tokens.size(0)
     if mask_ratio == "random":
-        t_lo, t_hi = 0.05, 0.99
+        # Curriculum: start with t_lo=0.3 (hard masking only), linearly decrease to 0.05
+        t_lo = 0.3 - 0.25 * min(progress / 0.5, 1.0)  # 0.3 → 0.05 over first 50%
+        t_hi = 0.99
         t = torch.rand(bsz, 1, device=clean_tokens.device) * (t_hi - t_lo) + t_lo
         rand = torch.rand_like(clean_tokens, dtype=torch.float32)
         masked_positions = rand < t
@@ -118,6 +120,7 @@ def make_masked_batch(clean_tokens, mask_id, mask_ratio):
 t_start_training = time.time()
 smooth_train_loss = 0.0
 total_training_time = 0.0
+progress = 0.0
 step = 0
 
 
@@ -126,7 +129,7 @@ while True:
     t0 = time.time()
 
     for _ in range(grad_accum_steps):
-        x_masked, masked_pos, t = make_masked_batch(x, mask_token_id, MASK_RATIO)
+        x_masked, masked_pos, t = make_masked_batch(x, mask_token_id, MASK_RATIO, progress)
         with autocast_ctx:
             logits = model(x_masked)
             loss_flat = F.cross_entropy(
