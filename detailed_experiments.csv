@@ -136,3 +136,4 @@ experiment_id,commit,description,val_bpb_duel,peak_vram_mb,num_steps,num_params_
 132,,EMA decay=0.999 for eval,1.407782,6958,14832,20.3,,discard,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.6,0.0,1.0,0.05,0.99,20,max-autotune,EMA hurts - warmdown already converges smoothly
 132,,torch.compile reduce-overhead,CRASH,,,20.3,,discard,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.6,0.0,1.0,0.05,0.99,20,reduce-overhead,crashed during eval (file modified externally)
 133,,FFN_MULT=3.0 (GPU 1 throttled),1.547576,,,21.2,,discard,5,512,8,3.0,2.0e-3,0.05,"0.9/0.95",0.1,0.6,0.0,1.0,0.05,0.99,20,max-autotune,INVALID: only 6921 steps due to dual-GPU power throttling
+134,,FFN_MULT=3.0 (GPU 0 only),1.423829,7011,14490,21.2,,discard,5,512,8,3.0,2.0e-3,0.05,"0.9/0.95",0.1,0.6,0.0,1.0,0.05,0.99,20,max-autotune,wider FFN too slow per step to compensate
