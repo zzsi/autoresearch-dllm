@@ -37,7 +37,7 @@ BETAS = (0.9, 0.95)
 WARMUP_RATIO = 0.1
 WARMDOWN_RATIO = 0.6
 FINAL_LR_FRAC = 0.0
-GRAD_CLIP_NORM = 1.0
+GRAD_CLIP_NORM = 0.8
 
 # DLM specifics
 MASK_RATIO = "random"  # "random" = LLaDA-style t~U[eps,1], or float for fixed ratio
@@ -68,7 +68,6 @@ config = ModernDLMConfig(
     ffn_mult=FFN_MULT,
     mask_token_id=mask_token_id,
     softcap=20.0,
-    rope_theta=1000.0,
 )
 model = ModernDLM(config).to(device)
 model.init_weights()
