@@ -119,3 +119,6 @@ experiment_id,commit,description,val_bpb_duel,peak_vram_mb,num_steps,num_params_
 118,,warmdown 0.6,1.394194,6880,14987,20.3,,keep,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.6,0.0,1.0,0.05,0.99,20,max-autotune,NEW BEST - more cooldown helps
 119,,warmdown 0.7,1.407196,6880,14995,20.3,,discard,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.7,0.0,1.0,0.05,0.99,20,max-autotune,too much cooldown
 120,,warmdown 0.65 (GPU contention),1.483394,6880,7185,20.3,,discard,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.65,0.0,1.0,0.05,0.99,20,max-autotune,INVALID - 2x slower due to GPU contention
+121,,decoupled WD (no WD on embed/norm),1.405216,6880,14963,20.3,,discard,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.6,0.0,1.0,0.05,0.99,20,max-autotune,embedding WD was actually helping
+121,,decoupled WD + warmdown 0.65,1.474004,6880,7338,20.3,,discard,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.65,0.0,1.0,0.05,0.99,20,max-autotune,INVALID - 2-param-group optimizer breaks throughput
+122,,warmdown 0.65 retry (clean),1.405216,6880,14963,20.3,,discard,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.65,0.0,1.0,0.05,0.99,20,max-autotune,0.6 still better
