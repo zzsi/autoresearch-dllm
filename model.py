@@ -134,16 +134,12 @@ class BidirectionalAttention(nn.Module):
         self.k_proj = nn.Linear(config.n_embd, config.n_embd, bias=False)
         self.v_proj = nn.Linear(config.n_embd, config.n_embd, bias=False)
         self.o_proj = nn.Linear(config.n_embd, config.n_embd, bias=False)
-        self.q_norm = RMSNorm(self.head_dim)
-        self.k_norm = RMSNorm(self.head_dim)
 
     def forward(self, x, cos, sin):
         B, T, C = x.size()
         q = self.q_proj(x).view(B, T, self.n_head, self.head_dim)
         k = self.k_proj(x).view(B, T, self.n_head, self.head_dim)
         v = self.v_proj(x).view(B, T, self.n_head, self.head_dim)
-        q = self.q_norm(q)
-        k = self.k_norm(k)
         q = _apply_rotary_emb(q, cos, sin)
         k = _apply_rotary_emb(k, cos, sin)
         # (B, T, H, D) -> (B, H, T, D) for SDPA
