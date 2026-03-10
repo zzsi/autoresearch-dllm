@@ -140,6 +140,10 @@ while True:
             else:
                 denom = masked_pos.sum().clamp_min(1)
                 loss = (loss_flat * masked_pos).sum() / denom
+            # z-loss: penalty on log partition function (PaLM-style)
+            log_z = logits.view(-1, logits.size(-1)).logsumexp(dim=-1)
+            z_loss = 1e-4 * (log_z ** 2).mean()
+            loss = loss + z_loss
 
         train_loss = loss.detach()
         (loss / grad_accum_steps).backward()
