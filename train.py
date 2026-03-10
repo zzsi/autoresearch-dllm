@@ -29,8 +29,8 @@ N_HEAD = 8
 FFN_MULT = 8 / 3  # SwiGLU param-matched to 4x GELU MLP
 
 # Optimization
-TOTAL_BATCH_SIZE = 2 ** 16
-DEVICE_BATCH_SIZE = 128
+TOTAL_BATCH_SIZE = 2 ** 15
+DEVICE_BATCH_SIZE = 64
 LR = 2.0e-3
 WEIGHT_DECAY = 0.05
 BETAS = (0.9, 0.95)
@@ -102,7 +102,7 @@ def get_lr_multiplier(progress):
 def make_masked_batch(clean_tokens, mask_id, mask_ratio):
     bsz = clean_tokens.size(0)
     if mask_ratio == "random":
-        t_lo, t_hi = 0.05, 0.99
+        t_lo, t_hi = 0.02, 0.99
         t = torch.rand(bsz, 1, device=clean_tokens.device) * (t_hi - t_lo) + t_lo
         rand = torch.rand_like(clean_tokens, dtype=torch.float32)
         masked_positions = rand < t
