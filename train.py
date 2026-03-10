@@ -136,7 +136,11 @@ while True:
             ).view_as(x)
             if t is not None:
                 # Capped 1/t weighting: CE / max(t, 0.3), capping at ~3.3x
-                loss = (loss_flat * masked_pos.float() / t.clamp(min=0.3)).sum() / (x.size(0) * x.size(1))
+                masked_loss = (loss_flat * masked_pos.float() / t.clamp(min=0.3)).sum() / (x.size(0) * x.size(1))
+                # Auxiliary loss on unmasked tokens for confidence calibration
+                unmasked_pos = ~masked_pos
+                unmasked_loss = (loss_flat * unmasked_pos.float()).sum() / (x.size(0) * x.size(1))
+                loss = masked_loss + 0.01 * unmasked_loss
             else:
                 denom = masked_pos.sum().clamp_min(1)
                 loss = (loss_flat * masked_pos).sum() / denom
