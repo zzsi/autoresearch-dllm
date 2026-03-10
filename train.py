@@ -133,7 +133,6 @@ while True:
                 logits.view(-1, logits.size(-1)),
                 x.view(-1),
                 reduction="none",
-                label_smoothing=0.1,
             ).view_as(x)
             if t is not None:
                 # Capped 1/t weighting: CE / max(t, 0.3), capping at ~3.3x
@@ -141,6 +140,10 @@ while True:
             else:
                 denom = masked_pos.sum().clamp_min(1)
                 loss = (loss_flat * masked_pos).sum() / denom
+            # z-loss: penalize large logits for stability (PaLM-style)
+            log_z = logits.view(-1, logits.size(-1)).float().logsumexp(dim=-1)
+            z_loss = 1e-4 * (log_z ** 2).mean()
+            loss = loss + z_loss
 
         train_loss = loss.detach()
         (loss / grad_accum_steps).backward()
