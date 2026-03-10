@@ -99,3 +99,4 @@ experiment_id,commit,description,val_bpb_duel,peak_vram_mb,num_steps,num_params_
 98,e7304fb,depth 5 re-sweep (reveal=1+capped),1.406261,6880,14985,20.3,815000,keep,5,512,8,2.67,1.8e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,NEW BEST - more steps compensate for fewer params
 99,fa05292,depth 4 re-sweep,1.441193,6251,17465,17.0,817000,discard,4,512,8,2.67,1.8e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,too few params despite 17k steps
 100,,depth 7 re-sweep,1.414332,8137,11636,26.7,,discard,7,512,8,2.67,1.8e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,fewer steps outweigh more capacity
+101,,depth 5 width 576,1.430016,7271,12251,24.6,,discard,5,576,8,2.67,1.8e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,wider model too slow at 12k steps
