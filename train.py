@@ -30,7 +30,7 @@ FFN_MULT = 8 / 3  # SwiGLU param-matched to 4x GELU MLP
 
 # Optimization
 TOTAL_BATCH_SIZE = 2 ** 16
-DEVICE_BATCH_SIZE = 64
+DEVICE_BATCH_SIZE = 128
 LR = 2.0e-3
 WEIGHT_DECAY = 0.05
 BETAS = (0.9, 0.95)
@@ -126,7 +126,6 @@ while True:
     t0 = time.time()
 
     for _ in range(grad_accum_steps):
-        torch.compiler.cudagraph_mark_step_begin()
         x_masked, masked_pos, t = make_masked_batch(x, mask_token_id, MASK_RATIO)
         with autocast_ctx:
             logits = model(x_masked)
