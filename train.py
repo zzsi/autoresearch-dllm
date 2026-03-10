@@ -29,7 +29,7 @@ N_HEAD = 8
 FFN_MULT = 8 / 3  # SwiGLU param-matched to 4x GELU MLP
 
 # Optimization
-TOTAL_BATCH_SIZE = 2 ** 16
+TOTAL_BATCH_SIZE = 2 ** 15
 DEVICE_BATCH_SIZE = 64
 LR = 2.0e-3
 WEIGHT_DECAY = 0.05
@@ -49,8 +49,8 @@ REVEAL_PER_STEP = 1
 # ---------------------------------------------------------------------------
 
 t_start = time.time()
-torch.manual_seed(42)
-torch.cuda.manual_seed(42)
+torch.manual_seed(43)
+torch.cuda.manual_seed(43)
 torch.set_float32_matmul_precision("high")
 device = torch.device("cuda")
 autocast_ctx = torch.amp.autocast(device_type="cuda", dtype=torch.bfloat16)
