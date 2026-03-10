@@ -130,3 +130,4 @@ experiment_id,commit,description,val_bpb_duel,peak_vram_mb,num_steps,num_params_
 128,,QK-norm (RMSNorm on Q/K),1.425122,7210,14401,20.3,,discard,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.6,0.0,1.0,0.05,0.99,20,max-autotune,QK-norm hurts quality and reduces throughput 4%
 128,,QK-norm (RMSNorm on q/k before RoPE),1.425122,7209,14401,20.3,,discard,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.6,0.0,1.0,0.05,0.99,20,max-autotune,QK-norm slows throughput + hurts at current scale
 129,,label smoothing 0.1,1.441365,7391,14269,20.3,,discard,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.6,0.0,1.0,0.05,0.99,20,max-autotune,label smoothing hurts - softened targets counterproductive for exact token prediction
+129,,no softcap (depth=5),1.441365,7391,14269,20.3,,discard,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.6,0.0,1.0,0.05,0.99,0,max-autotune,softcap 20 confirmed important at depth=5
