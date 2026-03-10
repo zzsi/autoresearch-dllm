@@ -148,3 +148,4 @@ experiment_id,commit,description,val_bpb_duel,peak_vram_mb,num_steps,num_params_
 140,,softcap 15 (GPU contention),1.406590,6879,14883,20.3,,promising,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.6,0.0,1.0,0.05,0.99,15,max-autotune,better than contended baseline - needs clean GPU retest
 141,,softcap 17 (GPU contention),1.401643,6879,14878,20.3,,promising,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.6,0.0,1.0,0.05,0.99,17,max-autotune,BEST under contention! Better than softcap 15 and 20 - needs clean retest
 142,,softcap 18 (results lost),N/A,,,20.3,,discard,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.6,0.0,1.0,0.05,0.99,18,max-autotune,log overwritten before results captured
+141,1d8a2ca,depth 7 width 384 n_head 6 (trade width for depth+tokens),1.406521,6897.3,16551,15.5,905k,discard,7,384,6,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.6,0.0,1.0,0.05,0.99,20,max-autotune,384 too narrow even with 7 layers - width 512 with fewer layers is better
