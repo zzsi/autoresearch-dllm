@@ -126,6 +126,7 @@ while True:
     t0 = time.time()
 
     for _ in range(grad_accum_steps):
+        torch.compiler.cudagraph_mark_step_begin()
         x_masked, masked_pos, t = make_masked_batch(x, mask_token_id, MASK_RATIO)
         with autocast_ctx:
             logits = model(x_masked)
