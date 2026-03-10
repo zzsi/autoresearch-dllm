@@ -95,10 +95,6 @@ def get_lr_multiplier(progress):
         return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
     if progress < 1.0 - WARMDOWN_RATIO:
         return 1.0
-    # LR spike at 95% progress: briefly bump to 0.5, then rapid decay
-    if progress >= 0.95:
-        spike_progress = (progress - 0.95) / 0.05  # 0→1 over last 5%
-        return 0.5 * (1.0 - spike_progress)  # 0.5 → 0
     cooldown = (1.0 - progress) / WARMDOWN_RATIO
     return cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC
 
