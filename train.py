@@ -34,7 +34,7 @@ DEVICE_BATCH_SIZE = 64
 LR = 2.0e-3
 WEIGHT_DECAY = 0.05
 BETAS = (0.9, 0.95)
-WARMUP_RATIO = 0.15
+WARMUP_RATIO = 0.155
 WARMDOWN_RATIO = 0.6
 FINAL_LR_FRAC = 0.0
 GRAD_CLIP_NORM = 1.0
@@ -140,10 +140,6 @@ while True:
             else:
                 denom = masked_pos.sum().clamp_min(1)
                 loss = (loss_flat * masked_pos).sum() / denom
-            # z-loss: penalty on log partition function (PaLM-style)
-            log_z = logits.view(-1, logits.size(-1)).logsumexp(dim=-1)
-            z_loss = 1e-4 * (log_z ** 2).mean()
-            loss = loss + z_loss
 
         train_loss = loss.detach()
         (loss / grad_accum_steps).backward()
