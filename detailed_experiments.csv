@@ -108,3 +108,4 @@ experiment_id,commit,description,val_bpb_duel,peak_vram_mb,num_steps,num_params_
 107,,sinusoidal timestep embedding+MLP,1.422139,6884,14966,20.6,,discard,5,512,8,2.67,1.8e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,richer conditioning hurts - simple linear is better
 108,,per-sample mask-normalized loss,1.460059,6880,14985,20.3,,discard,5,512,8,2.67,1.8e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,amplifies low-t gradients too much
 109,,no timestep conditioning at d5,1.421019,6848,14982,20.3,,discard,5,512,8,2.67,1.8e-3,0.1,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,timestep cond helps at d5 too (0.015 improvement)
+110,,weight decay 0.05 at depth 5,1.401810,6880,14946,20.3,,keep,5,512,8,2.67,1.8e-3,0.05,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,NEW BEST - less regularization helps with more steps
