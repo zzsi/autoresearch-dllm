@@ -31,7 +31,7 @@ FFN_MULT = 8 / 3  # SwiGLU param-matched to 4x GELU MLP
 # Optimization
 TOTAL_BATCH_SIZE = 2 ** 15
 DEVICE_BATCH_SIZE = 64
-LR = 2.05e-3
+LR = 2.0e-3
 WEIGHT_DECAY = 0.05
 BETAS = (0.9, 0.95)
 WARMUP_RATIO = 0.1
@@ -67,7 +67,7 @@ config = ModernDLMConfig(
     n_embd=N_EMBD,
     ffn_mult=FFN_MULT,
     mask_token_id=mask_token_id,
-    softcap=20.0,
+    softcap=25.0,
 )
 model = ModernDLM(config).to(device)
 model.init_weights()
