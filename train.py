@@ -23,7 +23,7 @@ from prepare import MAX_SEQ_LEN, TIME_BUDGET, Tokenizer, make_token_dataloader
 # ---------------------------------------------------------------------------
 
 # Model architecture
-DEPTH = 6
+DEPTH = 5
 N_EMBD = 512
 N_HEAD = 8
 FFN_MULT = 8 / 3  # SwiGLU param-matched to 4x GELU MLP
@@ -67,7 +67,7 @@ config = ModernDLMConfig(
     n_embd=N_EMBD,
     ffn_mult=FFN_MULT,
     mask_token_id=mask_token_id,
-    softcap=20.0,
+    softcap=22.0,
 )
 model = ModernDLM(config).to(device)
 model.init_weights()
