@@ -23,9 +23,9 @@ from prepare import MAX_SEQ_LEN, TIME_BUDGET, Tokenizer, make_token_dataloader
 # ---------------------------------------------------------------------------
 
 # Model architecture
-DEPTH = 5
-N_EMBD = 512
-N_HEAD = 8
+DEPTH = 7
+N_EMBD = 384
+N_HEAD = 6
 FFN_MULT = 8 / 3  # SwiGLU param-matched to 4x GELU MLP
 
 # Optimization
@@ -134,10 +134,8 @@ while True:
                 reduction="none",
             ).view_as(x)
             if t is not None:
-                # Anneal loss cap: 0.3→0.2 during training (stronger low-t focus late)
-                _progress = min(total_training_time / TIME_BUDGET, 1.0)
-                loss_cap = 0.3 - 0.1 * _progress
-                loss = (loss_flat * masked_pos.float() / t.clamp(min=loss_cap)).sum() / (x.size(0) * x.size(1))
+                # Capped 1/t weighting: CE / max(t, 0.3), capping at ~3.3x
+                loss = (loss_flat * masked_pos.float() / t.clamp(min=0.3)).sum() / (x.size(0) * x.size(1))
             else:
                 denom = masked_pos.sum().clamp_min(1)
                 loss = (loss_flat * masked_pos).sum() / denom
