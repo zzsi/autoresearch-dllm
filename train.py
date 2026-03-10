@@ -37,7 +37,7 @@ BETAS = (0.9, 0.95)
 WARMUP_RATIO = 0.1
 WARMDOWN_RATIO = 0.6
 FINAL_LR_FRAC = 0.0
-GRAD_CLIP_NORM = 0.8
+GRAD_CLIP_NORM = 1.0
 
 # DLM specifics
 MASK_RATIO = "random"  # "random" = LLaDA-style t~U[eps,1], or float for fixed ratio
