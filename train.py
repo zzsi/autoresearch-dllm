@@ -29,7 +29,7 @@ N_HEAD = 8
 FFN_MULT = 8 / 3  # SwiGLU param-matched to 4x GELU MLP
 
 # Optimization
-TOTAL_BATCH_SIZE = 2 ** 15
+TOTAL_BATCH_SIZE = 2 ** 16
 DEVICE_BATCH_SIZE = 64
 LR = 2.0e-3
 WEIGHT_DECAY = 0.05
@@ -49,8 +49,8 @@ REVEAL_PER_STEP = 1
 # ---------------------------------------------------------------------------
 
 t_start = time.time()
-torch.manual_seed(43)
-torch.cuda.manual_seed(43)
+torch.manual_seed(42)
+torch.cuda.manual_seed(42)
 torch.set_float32_matmul_precision("high")
 device = torch.device("cuda")
 autocast_ctx = torch.amp.autocast(device_type="cuda", dtype=torch.bfloat16)
@@ -136,8 +136,8 @@ while True:
                 reduction="none",
             ).view_as(x)
             if t is not None:
-                # Capped 1/t weighting: CE / max(t, 0.35), capping at ~2.9x
-                loss = (loss_flat * masked_pos.float() / t.clamp(min=0.35)).sum() / (x.size(0) * x.size(1))
+                # Capped 1/t weighting: CE / max(t, 0.3), capping at ~3.3x
+                loss = (loss_flat * masked_pos.float() / t.clamp(min=0.3)).sum() / (x.size(0) * x.size(1))
             else:
                 denom = masked_pos.sum().clamp_min(1)
                 loss = (loss_flat * masked_pos).sum() / denom
