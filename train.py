@@ -29,8 +29,8 @@ N_HEAD = 8
 FFN_MULT = 8 / 3  # SwiGLU param-matched to 4x GELU MLP
 
 # Optimization
-TOTAL_BATCH_SIZE = 2 ** 15
-DEVICE_BATCH_SIZE = 64
+TOTAL_BATCH_SIZE = 48 * 512  # 24576
+DEVICE_BATCH_SIZE = 48
 LR = 2.0e-3
 WEIGHT_DECAY = 0.05
 BETAS = (0.9, 0.95)
@@ -67,11 +67,11 @@ config = ModernDLMConfig(
     n_embd=N_EMBD,
     ffn_mult=FFN_MULT,
     mask_token_id=mask_token_id,
-    softcap=25.0,
+    softcap=20.0,
 )
 model = ModernDLM(config).to(device)
 model.init_weights()
-model = torch.compile(model, dynamic=False, mode="max-autotune")
+model = torch.compile(model, dynamic=False, mode="reduce-overhead")
 policy = build_policy(POLICY_NAME)
 optimizer = torch.optim.AdamW(model.parameters(), lr=LR, betas=BETAS, weight_decay=WEIGHT_DECAY)
 
