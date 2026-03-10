@@ -115,3 +115,5 @@ experiment_id,commit,description,val_bpb_duel,peak_vram_mb,num_steps,num_params_
 114,,LR 1.5e-3 at WD 0.05,1.418788,6880,14999,20.3,,discard,5,512,8,2.67,1.5e-3,0.05,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,too low LR
 115,,LR 2.0e-3 at WD 0.05,1.399623,6880,14927,20.3,,keep,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,NEW BEST - lower WD enables higher LR
 116,,LR 2.2e-3 at WD 0.05,1.405982,6880,14998,20.3,,discard,5,512,8,2.67,2.2e-3,0.05,"0.9/0.95",0.1,0.5,0.0,1.0,0.05,0.99,20,max-autotune,too high - LR 2.0e-3 optimal
+117,,warmdown 0.3,1.405851,6880,14954,20.3,,discard,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.3,0.0,1.0,0.05,0.99,20,max-autotune,less cooldown hurts
+118,,warmdown 0.6,1.394194,6880,14987,20.3,,keep,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.6,0.0,1.0,0.05,0.99,20,max-autotune,NEW BEST - more cooldown helps
