@@ -224,6 +224,7 @@ class ModernDLM(nn.Module):
         if self.config.mask_token_id >= 0:
             t = (tokens == self.config.mask_token_id).float().mean(dim=-1, keepdim=True)  # (B, 1)
             x = x + self.t_proj(t).unsqueeze(1)  # (B, 1, D) broadcast
+        x = F.rms_norm(x, (x.size(-1),))
         cos, sin = self.rotary(seqlen)
         for block in self.blocks:
             x = block(x, cos, sin)
