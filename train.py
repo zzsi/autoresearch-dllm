@@ -101,18 +101,11 @@ def get_lr_multiplier(progress):
 
 def make_masked_batch(clean_tokens, mask_id, mask_ratio):
     bsz = clean_tokens.size(0)
-    seqlen = clean_tokens.size(1)
     if mask_ratio == "random":
         t_lo, t_hi = 0.05, 0.99
         t = torch.rand(bsz, 1, device=clean_tokens.device) * (t_hi - t_lo) + t_lo
-        # Block masking: mask contiguous blocks of 8 tokens
-        block_size = 8
-        n_blocks = seqlen // block_size
-        block_rand = torch.rand(bsz, n_blocks, device=clean_tokens.device)
-        block_mask = block_rand < t  # (B, n_blocks)
-        masked_positions = block_mask.unsqueeze(2).expand(-1, -1, block_size).reshape(bsz, seqlen)
-        # Recompute effective t from actual masked count
-        t = masked_positions.float().mean(dim=-1, keepdim=True)
+        rand = torch.rand_like(clean_tokens, dtype=torch.float32)
+        masked_positions = rand < t
     else:
         rand = torch.rand_like(clean_tokens, dtype=torch.float32)
         masked_positions = rand < mask_ratio
