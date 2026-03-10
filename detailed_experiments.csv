@@ -143,3 +143,4 @@ experiment_id,commit,description,val_bpb_duel,peak_vram_mb,num_steps,num_params_
 137,,untied embedding/lm_head,1.415635,,,24.5,,discard,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.6,0.0,1.0,0.05,0.99,20,max-autotune,weight tying provides useful regularization at this scale
 138,,parallel blocks (PaLM-style shared norm),1.646978,6398.9,15440,20.3,,discard,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.6,0.0,1.0,0.05,0.99,20,max-autotune,parallel blocks significantly worse - shared norm reduces expressivity at small scale
 137,,parallel attn+FFN blocks (PaLM-style),1.646978,6398,15440,20.3,,discard,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.6,0.0,1.0,0.05,0.99,20,max-autotune,FFN cant condition on attn output - destroys quality at depth=5
+138,,warmdown 0.55 (GPU contention),1.406586,6879,14354,20.3,,discard,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.55,0.0,1.0,0.05,0.99,20,max-autotune,similar to baseline under contention - need clean GPU test
