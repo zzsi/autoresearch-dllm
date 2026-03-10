@@ -49,8 +49,8 @@ REVEAL_PER_STEP = 1
 # ---------------------------------------------------------------------------
 
 t_start = time.time()
-torch.manual_seed(42)
-torch.cuda.manual_seed(42)
+torch.manual_seed(137)
+torch.cuda.manual_seed(137)
 torch.set_float32_matmul_precision("high")
 device = torch.device("cuda")
 autocast_ctx = torch.amp.autocast(device_type="cuda", dtype=torch.bfloat16)
@@ -102,7 +102,7 @@ def get_lr_multiplier(progress):
 def make_masked_batch(clean_tokens, mask_id, mask_ratio):
     bsz = clean_tokens.size(0)
     if mask_ratio == "random":
-        t_lo, t_hi = 0.05, 0.95
+        t_lo, t_hi = 0.05, 0.99
         t = torch.rand(bsz, 1, device=clean_tokens.device) * (t_hi - t_lo) + t_lo
         rand = torch.rand_like(clean_tokens, dtype=torch.float32)
         masked_positions = rand < t
