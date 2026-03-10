@@ -67,11 +67,11 @@ config = ModernDLMConfig(
     n_embd=N_EMBD,
     ffn_mult=FFN_MULT,
     mask_token_id=mask_token_id,
-    softcap=20.0,
+    softcap=19.0,
 )
 model = ModernDLM(config).to(device)
 model.init_weights()
-model = torch.compile(model, dynamic=False, mode="reduce-overhead")
+model = torch.compile(model, dynamic=False, mode="max-autotune")
 policy = build_policy(POLICY_NAME)
 optimizer = torch.optim.AdamW(model.parameters(), lr=LR, betas=BETAS, weight_decay=WEIGHT_DECAY)
 
