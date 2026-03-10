@@ -198,6 +198,8 @@ class ModernDLM(nn.Module):
         self.norm = RMSNorm(config.n_embd)
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
         self.lm_head.weight = self.token_embed.weight  # weight tying
+        self.resid_lambdas = nn.Parameter(torch.ones(config.n_layer))
+        self.x0_lambdas = nn.Parameter(torch.zeros(config.n_layer))
         if config.mask_token_id >= 0:
             self.t_proj = nn.Linear(1, config.n_embd, bias=False)
 
@@ -206,6 +208,8 @@ class ModernDLM(nn.Module):
         """Mitchell-style init (LLaDA): std=1/√d, per-layer scaling 1/√(2*layer)."""
         std = 1.0 / (self.config.n_embd ** 0.5)
         nn.init.normal_(self.token_embed.weight, mean=0.0, std=std)
+        self.resid_lambdas.fill_(1.0)
+        self.x0_lambdas.fill_(0.1)
         if self.config.mask_token_id >= 0:
             nn.init.zeros_(self.t_proj.weight)
         for layer_idx, block in enumerate(self.blocks):
@@ -225,7 +229,9 @@ class ModernDLM(nn.Module):
             t = (tokens == self.config.mask_token_id).float().mean(dim=-1, keepdim=True)  # (B, 1)
             x = x + self.t_proj(t).unsqueeze(1)  # (B, 1, D) broadcast
         cos, sin = self.rotary(seqlen)
-        for block in self.blocks:
+        x0 = x
+        for i, block in enumerate(self.blocks):
+            x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
             x = block(x, cos, sin)
         x = self.norm(x)
         logits = self.lm_head(x)
