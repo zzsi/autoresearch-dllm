@@ -134,8 +134,10 @@ while True:
                 reduction="none",
             ).view_as(x)
             if t is not None:
-                # Capped 1/t weighting: CE / max(t, 0.3), capping at ~3.3x
-                loss = (loss_flat * masked_pos.float() / t.clamp(min=0.3)).sum() / (x.size(0) * x.size(1))
+                # Anneal loss cap: 0.3→0.2 during training (stronger low-t focus late)
+                _progress = min(total_training_time / TIME_BUDGET, 1.0)
+                loss_cap = 0.3 - 0.1 * _progress
+                loss = (loss_flat * masked_pos.float() / t.clamp(min=loss_cap)).sum() / (x.size(0) * x.size(1))
             else:
                 denom = masked_pos.sum().clamp_min(1)
                 loss = (loss_flat * masked_pos).sum() / denom
