@@ -148,6 +148,7 @@ while True:
     lrm = get_lr_multiplier(progress)
     for group in optimizer.param_groups:
         group["lr"] = LR * lrm
+        group["weight_decay"] = WEIGHT_DECAY * (1 - progress)
 
     torch.nn.utils.clip_grad_norm_(model.parameters(), GRAD_CLIP_NORM)
     optimizer.step()
