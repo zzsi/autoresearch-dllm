@@ -120,10 +120,6 @@ smooth_train_loss = 0.0
 total_training_time = 0.0
 step = 0
 
-# Stochastic Weight Averaging: average parameters over last 60% of training
-SWA_START = 0.4
-swa_params = [torch.zeros_like(p, dtype=torch.float32) for p in model.parameters()]
-swa_count = 0
 
 while True:
     torch.cuda.synchronize()
@@ -158,11 +154,6 @@ while True:
     optimizer.step()
     optimizer.zero_grad(set_to_none=True)
 
-    # SWA: accumulate parameter sum during warmdown phase
-    if progress >= SWA_START:
-        swa_count += 1
-        for sp, p in zip(swa_params, model.parameters()):
-            sp.add_(p.float())
 
     train_loss_f = train_loss.item()
     if (not torch.isfinite(train_loss)) or train_loss_f > 1e4:
@@ -204,13 +195,6 @@ while True:
 
 print()
 total_tokens = step * TOTAL_BATCH_SIZE
-
-# Load SWA averaged weights for evaluation
-if swa_count > 0:
-    with torch.no_grad():
-        for sp, p in zip(swa_params, model.parameters()):
-            p.copy_((sp / swa_count).to(p.dtype))
-    print(f"SWA: averaged {swa_count} checkpoints from last {100*(1-SWA_START):.0f}% of training")
 
 model.eval()
 with autocast_ctx:
