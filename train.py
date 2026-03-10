@@ -49,8 +49,8 @@ REVEAL_PER_STEP = 1
 # ---------------------------------------------------------------------------
 
 t_start = time.time()
-torch.manual_seed(137)
-torch.cuda.manual_seed(137)
+torch.manual_seed(42)
+torch.cuda.manual_seed(42)
 torch.set_float32_matmul_precision("high")
 device = torch.device("cuda")
 autocast_ctx = torch.amp.autocast(device_type="cuda", dtype=torch.bfloat16)
@@ -73,7 +73,7 @@ model = ModernDLM(config).to(device)
 model.init_weights()
 model = torch.compile(model, dynamic=False, mode="max-autotune")
 policy = build_policy(POLICY_NAME)
-optimizer = torch.optim.AdamW(model.parameters(), lr=LR, betas=BETAS, weight_decay=WEIGHT_DECAY)
+optimizer = torch.optim.AdamW(model.parameters(), lr=LR, betas=BETAS, weight_decay=WEIGHT_DECAY, fused=True)
 
 tokens_per_fwdbwd = DEVICE_BATCH_SIZE * MAX_SEQ_LEN
 assert TOTAL_BATCH_SIZE % tokens_per_fwdbwd == 0
