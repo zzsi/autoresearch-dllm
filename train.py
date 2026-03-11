@@ -29,9 +29,9 @@ N_HEAD = 8
 FFN_MULT = 8 / 3  # SwiGLU param-matched to 4x GELU MLP
 
 # Optimization
-TOTAL_BATCH_SIZE = 2 ** 16
-DEVICE_BATCH_SIZE = 128
-LR = 4.0e-3
+TOTAL_BATCH_SIZE = 2 ** 15
+DEVICE_BATCH_SIZE = 64
+LR = 2.0e-3
 WEIGHT_DECAY = 0.05
 BETAS = (0.9, 0.95)
 WARMUP_RATIO = 0.1
@@ -136,7 +136,7 @@ while True:
             ).view_as(x)
             if t is not None:
                 # Capped 1/t weighting: CE / max(t, 0.3), capping at ~3.3x
-                loss = (loss_flat * masked_pos.float() / t.clamp(min=0.3)).sum() / (x.size(0) * x.size(1))
+                loss = (loss_flat * masked_pos.float() / t.clamp(min=0.2)).sum() / (x.size(0) * x.size(1))
             else:
                 denom = masked_pos.sum().clamp_min(1)
                 loss = (loss_flat * masked_pos).sum() / denom
