@@ -23,9 +23,9 @@ from prepare import MAX_SEQ_LEN, TIME_BUDGET, Tokenizer, make_token_dataloader
 # ---------------------------------------------------------------------------
 
 # Model architecture
-DEPTH = 5
-N_EMBD = 512
-N_HEAD = 8
+DEPTH = 8
+N_EMBD = 768
+N_HEAD = 12
 FFN_MULT = 8 / 3  # SwiGLU param-matched to 4x GELU MLP
 
 # Optimization
@@ -66,7 +66,7 @@ config = ModernDLMConfig(
     n_head=N_HEAD,
     n_embd=N_EMBD,
     ffn_mult=FFN_MULT,
-    mask_token_id=-1,  # disable t_proj timestep conditioning
+    mask_token_id=mask_token_id,
     softcap=20.0,
 )
 model = ModernDLM(config).to(device)
