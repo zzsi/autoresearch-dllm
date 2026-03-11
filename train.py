@@ -23,8 +23,8 @@ from prepare import MAX_SEQ_LEN, TIME_BUDGET, Tokenizer, make_token_dataloader
 # ---------------------------------------------------------------------------
 
 # Model architecture
-DEPTH = 4
-N_EMBD = 576
+DEPTH = 5
+N_EMBD = 480
 N_HEAD = 8
 FFN_MULT = 8 / 3  # SwiGLU param-matched to 4x GELU MLP
 
