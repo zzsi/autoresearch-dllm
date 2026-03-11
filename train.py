@@ -34,15 +34,264 @@ DEVICE_BATCH_SIZE = 64
 LR = 2.0e-3
 WEIGHT_DECAY = 0.04
 BETAS = (0.9, 0.95)
+ADAM_EPS = 1e-8
 WARMUP_RATIO = 0.1
 WARMDOWN_RATIO = 0.6
 FINAL_LR_FRAC = 0.0
 GRAD_CLIP_NORM = 1.0
 
+# Optimizer choice:
+# - "adamw": default behavior
+# - "fused_adamw": AdamW fused CUDA kernels
+# - "muon_adamw": Muon on matrix params + AdamW on embedding/scalar params
+OPTIMIZER_NAME = "adamw"
+
+# Muon + AdamW knobs (used only with OPTIMIZER_NAME="muon_adamw")
+MATRIX_LR = 0.02
+EMBEDDING_LR = 1.0
+UNEMBEDDING_LR = 0.004
+SCALAR_LR = 0.5
+MUON_MOMENTUM = 0.95
+MUON_BETA2 = 0.95
+MUON_NS_STEPS = 5
+
 # DLM specifics
 MASK_RATIO = "random"  # "random" = LLaDA-style t~U[eps,1], or float for fixed ratio
 POLICY_NAME = "confidence_first"
 REVEAL_PER_STEP = 1
+
+# ---------------------------------------------------------------------------
+# Optimizer implementations
+# ---------------------------------------------------------------------------
+
+POLAR_EXPRESS_COEFFS = [
+    (8.156554524902461, -22.48329292557795, 15.878769915207462),
+    (4.042929935166739, -2.808917465908714, 0.5000178451051316),
+    (3.8916678022926607, -2.772484153217685, 0.5060648178503393),
+    (3.285753657755655, -2.3681294933425376, 0.46449024233003106),
+    (2.3465413258596377, -1.7097828382687081, 0.42323551169305323),
+]
+
+
+class MuonAdamW(torch.optim.Optimizer):
+    """Combined optimizer: Muon for matrix params, AdamW for non-matrix params."""
+
+    def __init__(self, param_groups):
+        super().__init__(param_groups, defaults={})
+
+    @torch.no_grad()
+    def _step_adamw(self, group):
+        beta1, beta2 = group["betas"]
+        lr = group["lr"]
+        eps = group["eps"]
+        wd = group["weight_decay"]
+        for p in group["params"]:
+            if p.grad is None:
+                continue
+            grad = p.grad
+            state = self.state[p]
+            if not state:
+                state["step"] = 0
+                state["exp_avg"] = torch.zeros_like(p)
+                state["exp_avg_sq"] = torch.zeros_like(p)
+            state["step"] += 1
+            exp_avg = state["exp_avg"]
+            exp_avg_sq = state["exp_avg_sq"]
+            exp_avg.lerp_(grad, 1 - beta1)
+            exp_avg_sq.lerp_(grad.square(), 1 - beta2)
+            bias1 = 1 - beta1 ** state["step"]
+            bias2 = 1 - beta2 ** state["step"]
+            denom = (exp_avg_sq / bias2).sqrt().add_(eps)
+            if wd != 0:
+                p.mul_(1 - lr * wd)
+            p.addcdiv_(exp_avg, denom, value=-(lr / bias1))
+
+    @torch.no_grad()
+    def _step_muon(self, group):
+        params = [p for p in group["params"] if p.grad is not None]
+        if not params:
+            return
+        shape = params[0].shape
+        for p in params:
+            if p.shape != shape:
+                raise ValueError("Muon group expects same-shaped params")
+
+        state = self.state[params[0]]
+        if (not state) or state.get("num_params") != len(params):
+            state["num_params"] = len(params)
+            state["momentum_buffer"] = torch.zeros(
+                len(params), *shape, dtype=params[0].dtype, device=params[0].device
+            )
+            red_dim = -1 if shape[-2] >= shape[-1] else -2
+            state_shape = (len(params), shape[-2], 1) if red_dim == -1 else (len(params), 1, shape[-1])
+            state["second_momentum_buffer"] = torch.zeros(
+                state_shape, dtype=params[0].dtype, device=params[0].device
+            )
+
+        stacked_grads = torch.stack([p.grad for p in params])
+        stacked_params = torch.stack([p.detach() for p in params])
+        momentum_buffer = state["momentum_buffer"]
+        second_momentum_buffer = state["second_momentum_buffer"]
+
+        momentum = group["momentum"]
+        momentum_buffer.lerp_(stacked_grads, 1 - momentum)
+        g = stacked_grads.lerp(momentum_buffer, momentum)
+
+        x = g.bfloat16()
+        x = x / (x.norm(dim=(-2, -1), keepdim=True) * 1.02 + 1e-6)
+        coeffs = POLAR_EXPRESS_COEFFS[: group["ns_steps"]]
+        if g.size(-2) > g.size(-1):
+            for a, b, c in coeffs:
+                a_mat = x.mT @ x
+                b_mat = b * a_mat + c * (a_mat @ a_mat)
+                x = a * x + x @ b_mat
+        else:
+            for a, b, c in coeffs:
+                a_mat = x @ x.mT
+                b_mat = b * a_mat + c * (a_mat @ a_mat)
+                x = a * x + b_mat @ x
+        g = x.to(stacked_params.dtype)
+
+        beta2 = group["beta2"]
+        if beta2 is not None:
+            red_dim = -1 if shape[-2] >= shape[-1] else -2
+            v_mean = g.float().square().mean(dim=red_dim, keepdim=True)
+            red_dim_size = g.size(red_dim)
+            v_norm_sq = v_mean.sum(dim=(-2, -1), keepdim=True) * red_dim_size
+            v_norm = v_norm_sq.sqrt()
+            second_momentum_buffer.lerp_(v_mean.to(second_momentum_buffer.dtype), 1 - beta2)
+            step_size = second_momentum_buffer.clamp_min(1e-10).rsqrt()
+            scaled_sq_sum = (v_mean * red_dim_size) * step_size.float().square()
+            v_norm_new = scaled_sq_sum.sum(dim=(-2, -1), keepdim=True).sqrt()
+            final_scale = step_size * (v_norm / v_norm_new.clamp_min(1e-10))
+            g = g * final_scale.to(g.dtype)
+
+        lr = group["lr"]
+        wd = group["weight_decay"]
+        if wd != 0:
+            mask = (g * stacked_params) >= 0
+            stacked_params.sub_(lr * g + lr * wd * stacked_params * mask)
+        else:
+            stacked_params.sub_(lr * g)
+
+        torch._foreach_copy_(params, list(stacked_params.unbind(0)))
+
+    @torch.no_grad()
+    def step(self):
+        for group in self.param_groups:
+            if group["kind"] == "adamw":
+                self._step_adamw(group)
+            elif group["kind"] == "muon":
+                self._step_muon(group)
+            else:
+                raise ValueError(f"Unknown optimizer group kind: {group['kind']}")
+
+
+def _split_params_for_muon(model):
+    seen = set()
+    embedding_params = []
+    unembedding_params = []
+    matrix_params = []
+    scalar_params = []
+    for name, p in model.named_parameters():
+        if not p.requires_grad:
+            continue
+        if id(p) in seen:
+            continue
+        seen.add(id(p))
+        if name.startswith("token_embed"):
+            embedding_params.append(p)
+        elif name.startswith("lm_head"):
+            unembedding_params.append(p)
+        elif p.ndim >= 2:
+            matrix_params.append(p)
+        else:
+            scalar_params.append(p)
+    return embedding_params, unembedding_params, matrix_params, scalar_params
+
+
+def build_optimizer(model):
+    if OPTIMIZER_NAME == "adamw":
+        opt = torch.optim.AdamW(
+            model.parameters(),
+            lr=LR,
+            betas=BETAS,
+            eps=ADAM_EPS,
+            weight_decay=WEIGHT_DECAY,
+        )
+        for group in opt.param_groups:
+            group["base_lr"] = group["lr"]
+        return opt
+
+    if OPTIMIZER_NAME == "fused_adamw":
+        opt = torch.optim.AdamW(
+            model.parameters(),
+            lr=LR,
+            betas=BETAS,
+            eps=ADAM_EPS,
+            weight_decay=WEIGHT_DECAY,
+            fused=True,
+        )
+        for group in opt.param_groups:
+            group["base_lr"] = group["lr"]
+        return opt
+
+    if OPTIMIZER_NAME == "muon_adamw":
+        embedding_params, unembedding_params, matrix_params, scalar_params = _split_params_for_muon(model)
+        param_groups = []
+        if unembedding_params:
+            param_groups.append(
+                dict(
+                    kind="adamw",
+                    params=unembedding_params,
+                    lr=UNEMBEDDING_LR,
+                    base_lr=UNEMBEDDING_LR,
+                    betas=BETAS,
+                    eps=ADAM_EPS,
+                    weight_decay=0.0,
+                )
+            )
+        if embedding_params:
+            param_groups.append(
+                dict(
+                    kind="adamw",
+                    params=embedding_params,
+                    lr=EMBEDDING_LR,
+                    base_lr=EMBEDDING_LR,
+                    betas=BETAS,
+                    eps=ADAM_EPS,
+                    weight_decay=0.0,
+                )
+            )
+        if scalar_params:
+            param_groups.append(
+                dict(
+                    kind="adamw",
+                    params=scalar_params,
+                    lr=SCALAR_LR,
+                    base_lr=SCALAR_LR,
+                    betas=BETAS,
+                    eps=ADAM_EPS,
+                    weight_decay=0.0,
+                )
+            )
+        for shape in sorted({tuple(p.shape) for p in matrix_params}):
+            group_params = [p for p in matrix_params if tuple(p.shape) == shape]
+            param_groups.append(
+                dict(
+                    kind="muon",
+                    params=group_params,
+                    lr=MATRIX_LR,
+                    base_lr=MATRIX_LR,
+                    momentum=MUON_MOMENTUM,
+                    beta2=MUON_BETA2,
+                    weight_decay=WEIGHT_DECAY,
+                    ns_steps=MUON_NS_STEPS,
+                )
+            )
+        return MuonAdamW(param_groups)
+
+    raise ValueError(f"Unknown OPTIMIZER_NAME={OPTIMIZER_NAME!r}")
 
 # ---------------------------------------------------------------------------
 # Setup
@@ -73,7 +322,7 @@ model = ModernDLM(config).to(device)
 model.init_weights()
 model = torch.compile(model, dynamic=False, mode="max-autotune")
 policy = build_policy(POLICY_NAME)
-optimizer = torch.optim.AdamW(model.parameters(), lr=LR, betas=BETAS, weight_decay=WEIGHT_DECAY)
+optimizer = build_optimizer(model)
 
 tokens_per_fwdbwd = DEVICE_BATCH_SIZE * MAX_SEQ_LEN
 assert TOTAL_BATCH_SIZE % tokens_per_fwdbwd == 0
@@ -88,6 +337,7 @@ print(f"Policy: {policy.name}, reveal_per_step={REVEAL_PER_STEP}")
 print(f"Num params: {num_params / 1e6:.1f}M")
 print(f"Time budget: {TIME_BUDGET}s")
 print(f"Gradient accumulation steps: {grad_accum_steps}")
+print(f"Optimizer: {OPTIMIZER_NAME}")
 
 
 def get_lr_multiplier(progress):
@@ -148,7 +398,8 @@ while True:
     progress = min(total_training_time / TIME_BUDGET, 1.0)
     lrm = get_lr_multiplier(progress)
     for group in optimizer.param_groups:
-        group["lr"] = LR * lrm
+        base_lr = group.get("base_lr", LR)
+        group["lr"] = base_lr * lrm
 
     torch.nn.utils.clip_grad_norm_(model.parameters(), GRAD_CLIP_NORM)
     optimizer.step()

@@ -25,9 +25,9 @@ import torch
 # Constants (fixed for benchmark comparability)
 # ---------------------------------------------------------------------------
 
-MAX_SEQ_LEN = 512
+MAX_SEQ_LEN = 2048
 TIME_BUDGET = 600        # 10 minutes (scaled for non-H100 GPUs)
-EVAL_TOKENS = 2 * 65536
+EVAL_TOKENS = 40 * 524288
 
 # ---------------------------------------------------------------------------
 # Configuration
