@@ -23,8 +23,8 @@ from prepare import MAX_SEQ_LEN, TIME_BUDGET, Tokenizer, make_token_dataloader
 # ---------------------------------------------------------------------------
 
 # Model architecture
-DEPTH = 6
-N_EMBD = 448
+DEPTH = 5
+N_EMBD = 512
 N_HEAD = 8
 FFN_MULT = 8 / 3  # SwiGLU param-matched to 4x GELU MLP
 
@@ -32,7 +32,7 @@ FFN_MULT = 8 / 3  # SwiGLU param-matched to 4x GELU MLP
 TOTAL_BATCH_SIZE = 2 ** 15
 DEVICE_BATCH_SIZE = 64
 LR = 2.0e-3
-WEIGHT_DECAY = 0.05
+WEIGHT_DECAY = 0.04
 BETAS = (0.9, 0.95)
 WARMUP_RATIO = 0.1
 WARMDOWN_RATIO = 0.6
