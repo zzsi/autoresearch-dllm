@@ -121,7 +121,6 @@ total_training_time = 0.0
 step = 0
 
 
-progress = 0.0
 while True:
     torch.cuda.synchronize()
     t0 = time.time()
@@ -136,9 +135,8 @@ while True:
                 reduction="none",
             ).view_as(x)
             if t is not None:
-                # Adaptive clamp: conservative→aggressive (0.5→0.15 over training)
-                clamp_min = 0.5 - 0.35 * progress
-                loss = (loss_flat * masked_pos.float() / t.clamp(min=clamp_min)).sum() / (x.size(0) * x.size(1))
+                # Capped 1/t weighting: CE / max(t, 0.3), capping at ~3.3x
+                loss = (loss_flat * masked_pos.float() / t.clamp(min=0.3)).sum() / (x.size(0) * x.size(1))
             else:
                 denom = masked_pos.sum().clamp_min(1)
                 loss = (loss_flat * masked_pos).sum() / denom
