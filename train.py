@@ -16,24 +16,22 @@ import torch.nn.functional as F
 from duel_eval import evaluate_duel_bpb
 from model import ModernDLMConfig, ModernDLM
 from policies import build_policy
-from prepare import MAX_SEQ_LEN, TIME_BUDGET as _TIME_BUDGET, Tokenizer, make_token_dataloader
-
-TIME_BUDGET = 1800  # override: 30 minutes
+from prepare import MAX_SEQ_LEN, TIME_BUDGET, Tokenizer, make_token_dataloader
 
 # ---------------------------------------------------------------------------
 # Hyperparameters (edit these directly)
 # ---------------------------------------------------------------------------
 
 # Model architecture
-DEPTH = 8
-N_EMBD = 768
-N_HEAD = 12
-FFN_MULT = 8 / 3  # SwiGLU param-matched to 4x GELU MLP
+DEPTH = 5
+N_EMBD = 512
+N_HEAD = 8
+FFN_MULT = 3.5  # wider FFN (baseline 8/3=2.67)
 
 # Optimization
 TOTAL_BATCH_SIZE = 2 ** 15
 DEVICE_BATCH_SIZE = 64
-LR = 1.5e-3
+LR = 2.0e-3
 WEIGHT_DECAY = 0.05
 BETAS = (0.9, 0.95)
 WARMUP_RATIO = 0.1
