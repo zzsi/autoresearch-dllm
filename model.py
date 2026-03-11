@@ -83,6 +83,7 @@ class ModernDLMConfig:
     ffn_mult: float = 8 / 3  # SwiGLU hidden ratio (param-matched to 4x GELU MLP)
     rope_theta: float = 10000.0
     softcap: float = 20.0
+    n_kv_head: int = 0  # GQA KV heads (0 = same as n_head, i.e. MHA)
     mask_token_id: int = -1  # set to enable timestep conditioning
 
 
@@ -128,23 +129,25 @@ class BidirectionalAttention(nn.Module):
     def __init__(self, config: ModernDLMConfig):
         super().__init__()
         self.n_head = config.n_head
+        self.n_kv_head = config.n_kv_head if config.n_kv_head > 0 else config.n_head
         self.head_dim = config.n_embd // config.n_head
         assert config.n_embd % config.n_head == 0
         self.q_proj = nn.Linear(config.n_embd, config.n_embd, bias=False)
-        self.k_proj = nn.Linear(config.n_embd, config.n_embd, bias=False)
-        self.v_proj = nn.Linear(config.n_embd, config.n_embd, bias=False)
+        kv_dim = self.n_kv_head * self.head_dim
+        self.k_proj = nn.Linear(config.n_embd, kv_dim, bias=False)
+        self.v_proj = nn.Linear(config.n_embd, kv_dim, bias=False)
         self.o_proj = nn.Linear(config.n_embd, config.n_embd, bias=False)
 
     def forward(self, x, cos, sin):
         B, T, C = x.size()
         q = self.q_proj(x).view(B, T, self.n_head, self.head_dim)
-        k = self.k_proj(x).view(B, T, self.n_head, self.head_dim)
-        v = self.v_proj(x).view(B, T, self.n_head, self.head_dim)
+        k = self.k_proj(x).view(B, T, self.n_kv_head, self.head_dim)
+        v = self.v_proj(x).view(B, T, self.n_kv_head, self.head_dim)
         q = _apply_rotary_emb(q, cos, sin)
         k = _apply_rotary_emb(k, cos, sin)
         # (B, T, H, D) -> (B, H, T, D) for SDPA
         q, k, v = (t.transpose(1, 2) for t in (q, k, v))
-        y = F.scaled_dot_product_attention(q, k, v, is_causal=False)
+        y = F.scaled_dot_product_attention(q, k, v, is_causal=False, enable_gqa=True)
         y = y.transpose(1, 2).contiguous().view(B, T, C)
         return self.o_proj(y)
 
