@@ -16,7 +16,9 @@ import torch.nn.functional as F
 from duel_eval import evaluate_duel_bpb
 from model import ModernDLMConfig, ModernDLM
 from policies import build_policy
-from prepare import MAX_SEQ_LEN, TIME_BUDGET, Tokenizer, make_token_dataloader
+from prepare import MAX_SEQ_LEN, TIME_BUDGET as _TIME_BUDGET, Tokenizer, make_token_dataloader
+
+TIME_BUDGET = 1800  # override: 30 minutes
 
 # ---------------------------------------------------------------------------
 # Hyperparameters (edit these directly)

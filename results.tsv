@@ -1,2 +1,3 @@
 1e94691	2.671837	8.6	keep	baseline (fixed eval)
 1519f31	2.677640	8.6	discard	LLaDA random mask ratio + 1/t loss weighting
+d1e6083	1.338006	11.2	keep	d8 w768 12heads 62.9M params 1800s budget
