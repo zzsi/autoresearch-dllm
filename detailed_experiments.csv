@@ -239,4 +239,7 @@ experiment_id,commit,description,val_bpb_duel,peak_vram_mb,num_steps,num_params_
 210,,depth 4 width 576,1.430827,6567.2,14418,20.6,472M,discard,4,576,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.6,0.0,1.0,0.05,0.99,20,max-autotune,depth 4 too shallow even at wider width. d5 confirmed minimum.
 211,,depth 5 width 480,1.468795,6810.2,15309,17.8,501M,discard,5,480,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.6,0.0,1.0,0.05,0.99,20,max-autotune,width 480 too narrow. 512 is minimum for d5.
 212,,LR 2.2e-3 (verify upper bound),1.403427,6880.4,14867,20.3,487M,discard,5,512,8,2.67,2.2e-3,0.05,"0.9/0.95",0.1,0.6,0.0,1.0,0.05,0.99,20,max-autotune,within noise of baseline. LR 2.0-2.2 both viable.
+213,,batch 2^16 + LR 4e-3 (linear scaling),1.446233,13487.0,7366,20.3,483M,discard,5,512,8,2.67,4.0e-3,0.05,"0.9/0.95",0.1,0.6,0.0,1.0,0.05,0.99,20,max-autotune,half optimizer updates hurts even with scaled LR.
+214,,loss cap at t=0.2 (higher weight),1.409048,6880.4,14859,20.3,487M,discard,5,512,8,2.67,2.0e-3,0.05,"0.9/0.95",0.1,0.6,0.0,1.0,0.05,0.99,20,max-autotune,5x max weight too aggressive. Cap 0.3 (3.3x) confirmed optimal.
 209,,LR 1.5e-3 d8 w768 1800s (GPU 1),1.315972,11497.4,18488,62.9,606M,keep,8,768,12,2.67,1.5e-3,0.05,"0.9/0.95",0.1,0.6,0.0,1.0,0.05,0.99,20,max-autotune,LR 1.5e-3 beats 2.0e-3 by 0.022! Lower LR optimal for 3x larger model. New best.
+210,,LR 1.2e-3 d8 w768 1800s (GPU 1),1.306393,11497.4,18518,62.9,607M,keep,8,768,12,2.67,1.2e-3,0.05,"0.9/0.95",0.1,0.6,0.0,1.0,0.05,0.99,20,max-autotune,LR 1.2e-3 beats 1.5e-3 by 0.010. Continuing LR sweep down.
