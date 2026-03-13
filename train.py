@@ -13,27 +13,29 @@ import time
 import torch
 import torch.nn.functional as F
 
+import duel_eval as _duel_eval
 from duel_eval import evaluate_duel_bpb
 from model import ModernDLMConfig, ModernDLM
 from policies import build_policy
 from prepare import MAX_SEQ_LEN, TIME_BUDGET, Tokenizer, make_token_dataloader
+_duel_eval.EVAL_TOKENS = 10 * 16 * MAX_SEQ_LEN  # override: ~327K tokens for tractable eval
 
 # ---------------------------------------------------------------------------
 # Hyperparameters (edit these directly)
 # ---------------------------------------------------------------------------
 
 # Model architecture
-DEPTH = 5
+DEPTH = 6
 N_EMBD = 512
 N_HEAD = 8
 FFN_MULT = 8 / 3  # SwiGLU param-matched to 4x GELU MLP
 
 # Optimization
 TOTAL_BATCH_SIZE = 2 ** 15
-DEVICE_BATCH_SIZE = 64
-LR = 2.0e-3
-WEIGHT_DECAY = 0.04
-BETAS = (0.9, 0.95)
+DEVICE_BATCH_SIZE = 16
+LR = 1.2e-3
+WEIGHT_DECAY = 0.15
+BETAS = (0.9, 0.99)
 ADAM_EPS = 1e-8
 WARMUP_RATIO = 0.1
 WARMDOWN_RATIO = 0.6
@@ -58,7 +60,7 @@ MUON_NS_STEPS = 5
 # DLM specifics
 MASK_RATIO = "random"  # "random" = LLaDA-style t~U[eps,1], or float for fixed ratio
 POLICY_NAME = "confidence_first"
-REVEAL_PER_STEP = 1
+REVEAL_PER_STEP = 4
 
 # ---------------------------------------------------------------------------
 # Optimizer implementations
@@ -316,7 +318,7 @@ config = ModernDLMConfig(
     n_embd=N_EMBD,
     ffn_mult=FFN_MULT,
     mask_token_id=mask_token_id,
-    softcap=20.0,
+    softcap=25.0,
 )
 model = ModernDLM(config).to(device)
 model.init_weights()
@@ -352,7 +354,7 @@ def get_lr_multiplier(progress):
 def make_masked_batch(clean_tokens, mask_id, mask_ratio):
     bsz = clean_tokens.size(0)
     if mask_ratio == "random":
-        t_lo, t_hi = 0.05, 0.99
+        t_lo, t_hi = 1e-3, 1.0
         t = torch.rand(bsz, 1, device=clean_tokens.device) * (t_hi - t_lo) + t_lo
         rand = torch.rand_like(clean_tokens, dtype=torch.float32)
         masked_positions = rand < t
@@ -385,8 +387,8 @@ while True:
                 reduction="none",
             ).view_as(x)
             if t is not None:
-                # Capped 1/t weighting: CE / max(t, 0.3), capping at ~3.3x
-                loss = (loss_flat * masked_pos.float() / t.clamp(min=0.3)).sum() / (x.size(0) * x.size(1))
+                # 1/t weighting (matches dllm repo LinearAlphaScheduler)
+                loss = (loss_flat * masked_pos.float() / t).sum() / masked_pos.sum().clamp_min(1)
             else:
                 denom = masked_pos.sum().clamp_min(1)
                 loss = (loss_flat * masked_pos).sum() / denom
@@ -446,12 +448,14 @@ while True:
 print()
 total_tokens = step * TOTAL_BATCH_SIZE
 
+EVAL_BATCH_SIZE = DEVICE_BATCH_SIZE  # match training batch to avoid recompilation
+
 model.eval()
 with autocast_ctx:
     val_bpb_duel = evaluate_duel_bpb(
         model=model,
         tokenizer=tokenizer,
-        batch_size=DEVICE_BATCH_SIZE,
+        batch_size=EVAL_BATCH_SIZE,
         seq_len=MAX_SEQ_LEN,
         policy=policy,
         reveal_per_step=REVEAL_PER_STEP,
