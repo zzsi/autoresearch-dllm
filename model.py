@@ -79,11 +79,15 @@ class ModernDLMConfig:
     vocab_size: int = 8192
     n_layer: int = 8
     n_head: int = 8
+    n_kv_head: int = 0  # 0 = same as n_head (MHA), else GQA
     n_embd: int = 512
     ffn_mult: float = 8 / 3  # SwiGLU hidden ratio (param-matched to 4x GELU MLP)
     rope_theta: float = 10000.0
     softcap: float = 20.0
+    qk_norm: bool = False  # RMSNorm on Q,K for training stability
+    parallel_blocks: bool = False  # GPT-J style parallel attn+FFN
     mask_token_id: int = -1  # set to enable timestep conditioning
+    t_inject_per_layer: bool = False  # inject timestep before each block vs once at embed
 
 
 class RMSNorm(nn.Module):
@@ -121,27 +125,42 @@ def _apply_rotary_emb(x, cos, sin):
     """x: (B, T, H, D), cos/sin: (1, T, 1, D/2)"""
     d = x.shape[-1] // 2
     x1, x2 = x[..., :d], x[..., d:]
-    return torch.cat([x1 * cos + x2 * sin, -x2 * sin + x1 * cos], dim=-1)
+    return torch.cat([x1 * cos + x2 * sin, x1 * (-sin) + x2 * cos], dim=-1)
 
 
 class BidirectionalAttention(nn.Module):
     def __init__(self, config: ModernDLMConfig):
         super().__init__()
         self.n_head = config.n_head
+        self.n_kv_head = config.n_kv_head if config.n_kv_head > 0 else config.n_head
         self.head_dim = config.n_embd // config.n_head
+        self.kv_dim = self.n_kv_head * self.head_dim
         assert config.n_embd % config.n_head == 0
+        assert config.n_head % self.n_kv_head == 0
+        self.n_rep = config.n_head // self.n_kv_head  # GQA repeat factor
         self.q_proj = nn.Linear(config.n_embd, config.n_embd, bias=False)
-        self.k_proj = nn.Linear(config.n_embd, config.n_embd, bias=False)
-        self.v_proj = nn.Linear(config.n_embd, config.n_embd, bias=False)
+        self.k_proj = nn.Linear(config.n_embd, self.kv_dim, bias=False)
+        self.v_proj = nn.Linear(config.n_embd, self.kv_dim, bias=False)
         self.o_proj = nn.Linear(config.n_embd, config.n_embd, bias=False)
+        self.qk_norm = config.qk_norm
+        if config.qk_norm:
+            self.q_norm = RMSNorm(self.head_dim)
+            self.k_norm = RMSNorm(self.head_dim)
 
     def forward(self, x, cos, sin):
         B, T, C = x.size()
         q = self.q_proj(x).view(B, T, self.n_head, self.head_dim)
-        k = self.k_proj(x).view(B, T, self.n_head, self.head_dim)
-        v = self.v_proj(x).view(B, T, self.n_head, self.head_dim)
+        k = self.k_proj(x).view(B, T, self.n_kv_head, self.head_dim)
+        v = self.v_proj(x).view(B, T, self.n_kv_head, self.head_dim)
         q = _apply_rotary_emb(q, cos, sin)
         k = _apply_rotary_emb(k, cos, sin)
+        if self.qk_norm:
+            q = self.q_norm(q)
+            k = self.k_norm(k)
+        # GQA: repeat KV heads to match Q heads
+        if self.n_rep > 1:
+            k = k[:, :, :, None, :].expand(B, T, self.n_kv_head, self.n_rep, self.head_dim).reshape(B, T, self.n_head, self.head_dim)
+            v = v[:, :, :, None, :].expand(B, T, self.n_kv_head, self.n_rep, self.head_dim).reshape(B, T, self.n_head, self.head_dim)
         # (B, T, H, D) -> (B, H, T, D) for SDPA
         q, k, v = (t.transpose(1, 2) for t in (q, k, v))
         y = F.scaled_dot_product_attention(q, k, v, is_causal=False)
@@ -165,14 +184,21 @@ class SwiGLUFFN(nn.Module):
 class ModernDenoiserBlock(nn.Module):
     def __init__(self, config: ModernDLMConfig):
         super().__init__()
+        self.parallel = config.parallel_blocks
         self.norm1 = RMSNorm(config.n_embd)
         self.attn = BidirectionalAttention(config)
-        self.norm2 = RMSNorm(config.n_embd)
+        if not config.parallel_blocks:
+            self.norm2 = RMSNorm(config.n_embd)
         self.ffn = SwiGLUFFN(config)
 
     def forward(self, x, cos, sin):
-        x = x + self.attn(self.norm1(x), cos, sin)
-        x = x + self.ffn(self.norm2(x))
+        if self.parallel:
+            # GPT-J style: single norm, parallel attn + FFN
+            h = self.norm1(x)
+            x = x + self.attn(h, cos, sin) + self.ffn(h)
+        else:
+            x = x + self.attn(self.norm1(x), cos, sin)
+            x = x + self.ffn(self.norm2(x))
         return x
 
 
@@ -221,11 +247,16 @@ class ModernDLM(nn.Module):
     def forward(self, tokens):
         bsz, seqlen = tokens.shape
         x = self.token_embed(tokens)
+        t_emb = None
         if self.config.mask_token_id >= 0:
             t = (tokens == self.config.mask_token_id).float().mean(dim=-1, keepdim=True)  # (B, 1)
-            x = x + self.t_proj(t).unsqueeze(1)  # (B, 1, D) broadcast
+            t_emb = self.t_proj(t).unsqueeze(1)  # (B, 1, D) broadcast
+            if not self.config.t_inject_per_layer:
+                x = x + t_emb  # add once at embedding (default)
         cos, sin = self.rotary(seqlen)
         for block in self.blocks:
+            if t_emb is not None and self.config.t_inject_per_layer:
+                x = x + t_emb  # fresh injection before each block
             x = block(x, cos, sin)
         x = self.norm(x)
         logits = self.lm_head(x)
