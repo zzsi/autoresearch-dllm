@@ -1,3 +1,4 @@
+import math
 from dataclasses import dataclass
 
 import torch
@@ -88,6 +89,8 @@ class ModernDLMConfig:
     parallel_blocks: bool = False  # GPT-J style parallel attn+FFN
     mask_token_id: int = -1  # set to enable timestep conditioning
     t_inject_per_layer: bool = False  # inject timestep before each block vs once at embed
+    adaln: bool = False  # AdaLN timestep conditioning (DiT-style)
+    cond_dim: int = 128  # condition embedding dim for AdaLN
 
 
 class RMSNorm(nn.Module):
@@ -98,6 +101,34 @@ class RMSNorm(nn.Module):
 
     def forward(self, x):
         return F.rms_norm(x, self.weight.shape, self.weight, self.eps)
+
+
+class TimestepEmbedder(nn.Module):
+    """Sinusoidal timestep → learned vector (DiT-style)."""
+    def __init__(self, cond_dim, freq_dim=256):
+        super().__init__()
+        self.mlp = nn.Sequential(
+            nn.Linear(freq_dim, cond_dim),
+            nn.SiLU(),
+            nn.Linear(cond_dim, cond_dim),
+        )
+        self.freq_dim = freq_dim
+
+    @staticmethod
+    def timestep_embedding(t, dim, max_period=10000):
+        half = dim // 2
+        freqs = torch.exp(
+            -math.log(max_period) * torch.arange(half, device=t.device).float() / half
+        )
+        args = t[:, None].float() * freqs[None]
+        return torch.cat([torch.cos(args), torch.sin(args)], dim=-1)
+
+    def forward(self, t):
+        return self.mlp(self.timestep_embedding(t, self.freq_dim))
+
+
+def _adaln_modulate(x, shift, scale):
+    return x * (1 + scale) + shift
 
 
 class RotaryEmbedding(nn.Module):
@@ -185,15 +216,27 @@ class ModernDenoiserBlock(nn.Module):
     def __init__(self, config: ModernDLMConfig):
         super().__init__()
         self.parallel = config.parallel_blocks
+        self.adaln = config.adaln
         self.norm1 = RMSNorm(config.n_embd)
         self.attn = BidirectionalAttention(config)
         if not config.parallel_blocks:
             self.norm2 = RMSNorm(config.n_embd)
         self.ffn = SwiGLUFFN(config)
+        if config.adaln:
+            # 6 modulation vectors: shift/scale/gate for attn + shift/scale/gate for FFN
+            self.adaLN_modulation = nn.Linear(config.cond_dim, 6 * config.n_embd, bias=True)
+            nn.init.zeros_(self.adaLN_modulation.weight)
+            nn.init.zeros_(self.adaLN_modulation.bias)
 
-    def forward(self, x, cos, sin):
-        if self.parallel:
-            # GPT-J style: single norm, parallel attn + FFN
+    def forward(self, x, cos, sin, c=None):
+        if self.adaln and c is not None:
+            mods = self.adaLN_modulation(c).unsqueeze(1).chunk(6, dim=2)
+            shift_msa, scale_msa, gate_msa, shift_mlp, scale_mlp, gate_mlp = mods
+            h = _adaln_modulate(self.norm1(x), shift_msa, scale_msa)
+            x = x + gate_msa * self.attn(h, cos, sin)
+            h = _adaln_modulate(self.norm2(x), shift_mlp, scale_mlp)
+            x = x + gate_mlp * self.ffn(h)
+        elif self.parallel:
             h = self.norm1(x)
             x = x + self.attn(h, cos, sin) + self.ffn(h)
         else:
@@ -224,7 +267,13 @@ class ModernDLM(nn.Module):
         self.norm = RMSNorm(config.n_embd)
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
         self.lm_head.weight = self.token_embed.weight  # weight tying
-        if config.mask_token_id >= 0:
+        if config.adaln:
+            self.sigma_map = TimestepEmbedder(config.cond_dim)
+            # AdaLN final layer modulation
+            self.final_adaLN = nn.Linear(config.cond_dim, 2 * config.n_embd, bias=True)
+            nn.init.zeros_(self.final_adaLN.weight)
+            nn.init.zeros_(self.final_adaLN.bias)
+        elif config.mask_token_id >= 0:
             self.t_proj = nn.Linear(1, config.n_embd, bias=False)
 
     @torch.no_grad()
@@ -232,7 +281,7 @@ class ModernDLM(nn.Module):
         """Mitchell-style init (LLaDA): std=1/√d, per-layer scaling 1/√(2*layer)."""
         std = 1.0 / (self.config.n_embd ** 0.5)
         nn.init.normal_(self.token_embed.weight, mean=0.0, std=std)
-        if self.config.mask_token_id >= 0:
+        if not self.config.adaln and self.config.mask_token_id >= 0:
             nn.init.zeros_(self.t_proj.weight)
         for layer_idx, block in enumerate(self.blocks):
             layer_std = std / ((2 * (layer_idx + 1)) ** 0.5)
@@ -244,21 +293,34 @@ class ModernDLM(nn.Module):
             nn.init.normal_(block.ffn.up_proj.weight, mean=0.0, std=layer_std)
             nn.init.zeros_(block.ffn.down_proj.weight)
 
-    def forward(self, tokens):
+    def forward(self, tokens, t=None):
         bsz, seqlen = tokens.shape
         x = self.token_embed(tokens)
-        t_emb = None
-        if self.config.mask_token_id >= 0:
-            t = (tokens == self.config.mask_token_id).float().mean(dim=-1, keepdim=True)  # (B, 1)
-            t_emb = self.t_proj(t).unsqueeze(1)  # (B, 1, D) broadcast
+        c = None
+        if self.config.adaln:
+            # AdaLN path: embed timestep into condition vector
+            if t is None:
+                # infer t from mask ratio (for generation)
+                t = (tokens == self.config.mask_token_id).float().mean(dim=-1)
+            elif t.dim() == 2:
+                t = t.squeeze(-1)
+            c = F.silu(self.sigma_map(t))  # (B, cond_dim)
+        elif self.config.mask_token_id >= 0:
+            # Legacy t_proj path
+            t_val = (tokens == self.config.mask_token_id).float().mean(dim=-1, keepdim=True)
+            t_emb = self.t_proj(t_val).unsqueeze(1)
             if not self.config.t_inject_per_layer:
-                x = x + t_emb  # add once at embedding (default)
+                x = x + t_emb
         cos, sin = self.rotary(seqlen)
         for block in self.blocks:
-            if t_emb is not None and self.config.t_inject_per_layer:
-                x = x + t_emb  # fresh injection before each block
-            x = block(x, cos, sin)
-        x = self.norm(x)
+            if not self.config.adaln and self.config.mask_token_id >= 0 and self.config.t_inject_per_layer:
+                x = x + t_emb
+            x = block(x, cos, sin, c=c)
+        if self.config.adaln and c is not None:
+            shift, scale = self.final_adaLN(c).unsqueeze(1).chunk(2, dim=2)
+            x = _adaln_modulate(self.norm(x), shift, scale)
+        else:
+            x = self.norm(x)
         logits = self.lm_head(x)
         if self.config.softcap > 0:
             logits = self.config.softcap * torch.tanh(logits / self.config.softcap)
